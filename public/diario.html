@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Libro Diario - Sistema Contable</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="css/styles.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <!-- Librería para generar archivos XLSX reales con soporte completo de estilos (colores, bordes, combinaciones) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+  <style>
+    :root{
+      --bg:#EEF2F8;
+      --surface:#FFFFFF;
+      --border:#E7EBF3;
+      --text:#16202C;
+      --muted:#7A8699;
+      --sidebar-1:#0B2233;
+      --sidebar-2:#0E4D48;
+      --blue-1:#3B7CF0; --blue-2:#63B3ED;
+      --green-1:#0FB88A; --green-2:#0A7F68;
+      --purple-1:#6C63F5; --purple-2:#8E7CF7;
+      --teal-1:#0E7C6B; --teal-2:#123A46;
+      --radius:16px;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; height:100%; overflow:hidden; }
+    body{
+      font-family:'Inter', system-ui, sans-serif;
+      color:var(--text);
+      background:var(--bg);
+    }
+    a{ text-decoration:none; color:inherit; }
+
+    .app-shell{ display:flex; height:100vh; width:100vw; overflow:hidden; }
+
+    /* ── Sidebar Estático ── */
+    .app-sidebar{
+      width:250px;
+      flex-shrink:0;
+      background:linear-gradient(200deg, var(--sidebar-1), var(--sidebar-2) 130%);
+      color:#CBD8E3;
+      padding:1.5rem 1.15rem;
+      height:100vh;
+      display:flex; flex-direction:column;
+      border-radius:0 22px 22px 0;
+      overflow-y:auto;
+    }
+    .sidebar-brand{
+      display:flex; align-items:center; gap:.7rem;
+      color:#fff; font-weight:700; font-size:1rem;
+      padding:.3rem .3rem 1.6rem;
+    }
+    .sidebar-brand .mark{
+      width:38px; height:38px; border-radius:11px;
+      background:rgba(255,255,255,.12);
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.15rem; color:#4FE0C3;
+    }
+    .sidebar-nav{ list-style:none; margin:0; padding:0; }
+    .sidebar-nav li + li{ margin-top:.3rem; }
+    .sidebar-link{
+      display:flex; align-items:center; gap:.75rem;
+      padding:.7rem .85rem;
+      border-radius:11px;
+      font-size:.9rem; font-weight:500;
+      color:#B7C6D6;
+    }
+    .sidebar-link i{ font-size:1.05rem; width:1.1rem; text-align:center; }
+    .sidebar-link:hover{ background:rgba(255,255,255,.06); color:#fff; }
+    .sidebar-link.active{
+      background:rgba(255,255,255,.14);
+      color:#fff;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+    }
+
+    .sidebar-period{
+      margin-top:1.75rem;
+      background:rgba(255,255,255,.06);
+      border-radius:14px;
+      padding:1rem;
+    }
+    .sidebar-period .label{ font-size:.72rem; color:#8FA3B8; margin-bottom:.6rem; font-weight:600; }
+    .period-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:.4rem; }
+    .period-cell{
+      text-align:center;
+      font-size:.72rem;
+      padding:.4rem 0;
+      border-radius:7px;
+      color:#B7C6D6;
+      background:rgba(255,255,255,.04);
+      cursor: default;
+    }
+    .period-cell.is-now{ background:#0FB88A; color:#04241C; font-weight:700; }
+
+    .sidebar-foot{
+      margin-top:auto;
+      padding-top:1.25rem;
+      font-size:.72rem;
+      color:#5E7488;
+      line-height:1.5;
+    }
+
+    /* ── Main Layout con Scroll Independiente ── */
+    .app-main{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      height:100vh;
+      overflow-y:auto;
+      min-width:0;
+    }
+    .app-topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:1.4rem 2rem 1rem;
+      gap:1rem;
+      background:var(--bg);
+      flex-shrink:0;
+    }
+    .topbar-user{ display:flex; align-items:center; gap:.9rem; flex-shrink:0; }
+    .topbar-user .meta{ text-align:right; line-height:1.2; }
+    .topbar-user .name{ font-weight:600; font-size:.86rem; }
+    .topbar-user .role{ font-size:.7rem; color:var(--muted); }
+    .avatar{
+      width:38px; height:38px; border-radius:50%;
+      background:linear-gradient(135deg, var(--blue-1), var(--purple-1));
+      display:flex; align-items:center; justify-content:center;
+      color:#fff; font-weight:700; font-size:.9rem;
+    }
+    .btn-logout{
+      border:1px solid var(--border); background:#fff;
+      padding:.4rem .7rem; border-radius:8px; font-size:.8rem;
+    }
+    .btn-logout:hover{ background:#F4F6FA; }
+    .mobile-toggle{
+      display:none; border:1px solid var(--border); background:#fff;
+      border-radius:8px; padding:.4rem .6rem;
+    }
+    @media (max-width:991px){
+      .app-sidebar{ display:none; }
+      .mobile-toggle{ display:inline-flex; }
+      html,body{ overflow:auto; }
+      .app-shell{ height:auto; overflow:visible; }
+      .app-main{ height:auto; overflow-y:visible; }
+    }
+
+    .app-content{ padding:0.5rem 2rem 2.5rem; flex:1; }
+  </style>
+</head>
+<body>
+
+  <div class="app-shell">
+
+    <!-- Sidebar Estático -->
+    <aside class="app-sidebar">
+      <div class="sidebar-brand">
+        <span class="mark"><i class="bi bi-bank"></i></span>
+        Sistema Contable
+      </div>
+
+      <ul class="sidebar-nav">
+        <li><a class="sidebar-link" href="dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+        <li><a class="sidebar-link active" href="diario.html"><i class="bi bi-journal-plus"></i> Libro Diario</a></li>
+        <li><a class="sidebar-link" href="mayor.html"><i class="bi bi-journals"></i> Libro Mayor</a></li>
+        <li><a class="sidebar-link" href="estados.html"><i class="bi bi-file-earmark-bar-graph"></i> Estados Financieros</a></li>
+        <li><a class="sidebar-link" href="kardex.html"><i class="bi bi-box-seam"></i> Kardex de Inventario</a></li>
+      </ul>
+
+      <div class="sidebar-period">
+        <div class="label">Periodo contable</div>
+        <div class="period-grid" id="periodGridSidebar"></div>
+      </div>
+
+      <div class="sidebar-foot">
+        &copy; 2026 Sistema Contable<br>Universidad Católica de El Salvador
+      </div>
+    </aside>
+
+    <!-- Mobile nav -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileNav" style="background:var(--sidebar-1); color:#CBD8E3;">
+      <div class="offcanvas-header">
+        <span class="sidebar-brand" style="padding:0;"><span class="mark"><i class="bi bi-bank"></i></span> Sistema Contable</span>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+      </div>
+      <div class="offcanvas-body">
+        <ul class="sidebar-nav">
+          <li><a class="sidebar-link" href="dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+          <li><a class="sidebar-link active" href="diario.html"><i class="bi bi-journal-plus"></i> Libro Diario</a></li>
+          <li><a class="sidebar-link" href="mayor.html"><i class="bi bi-journals"></i> Libro Mayor</a></li>
+          <li><a class="sidebar-link" href="estados.html"><i class="bi bi-file-earmark-bar-graph"></i> Estados Financieros</a></li>
+          <li><a class="sidebar-link" href="kardex.html"><i class="bi bi-box-seam"></i> Kardex de Inventario</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Main Content Area con Scroll Independiente -->
+    <div class="app-main">
+
+      <!-- Topbar -->
+      <div class="app-topbar">
+        <div class="d-flex align-items-center gap-2">
+          <button class="mobile-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNav">
+            <i class="bi bi-list fs-5"></i>
+          </button>
+        </div>
+        <div class="topbar-user">
+          <div class="meta">
+            <div id="navUserName" class="name">Usuario</div>
+            <div id="navUserRole" class="role">Rol</div>
+          </div>
+          <div class="avatar" id="userAvatar">U</div>
+          <button class="btn-logout" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Salir</button>
+        </div>
+      </div>
+
+      <main class="app-content">
+
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+          <div>
+            <h2 class="fw-bold text-dark mb-1">Registro de Asientos - Libro Diario</h2>
+            <p class="text-muted mb-0">Formulario con verificación obligatoria de Partida Doble ($\sum Debe = \sum Haber$)</p>
+          </div>
+          <div>
+            <button type="button" class="btn btn-warning fw-semibold shadow-sm text-dark" data-bs-toggle="modal" data-bs-target="#modalAjusteInventarios">
+              <i class="bi bi-magic me-1"></i> Asistente de Ajuste de Inventarios
+            </button>
+          </div>
+        </div>
+
+        <!-- Alert Box -->
+        <div id="alertContainer"></div>
+
+        <!-- Form Container Card -->
+        <div class="card custom-card mb-5">
+          <div class="custom-card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-journal-plus me-2 text-primary"></i> Nueva Partida Contable</span>
+            <span class="badge bg-primary fs-6" id="badgeNumeroPartida">Partida N° --</span>
+          </div>
+
+          <div class="card-body p-4">
+            <form id="partidaForm">
+              
+              <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                  <label for="numeroPartidaInput" class="form-label fw-semibold">N° Partida</label>
+                  <input type="number" class="form-control fw-bold text-primary" id="numeroPartidaInput" readonly>
+                </div>
+                <div class="col-md-3">
+                  <label for="fechaInput" class="form-label fw-semibold">Fecha</label>
+                  <input type="date" class="form-control" id="fechaInput" required>
+                </div>
+                <div class="col-md-6">
+                  <label for="conceptoInput" class="form-label fw-semibold">Concepto / Descripción de la transacción</label>
+                  <input type="text" class="form-control" id="conceptoInput" placeholder="Ej. Venta de mercadería al contado según factura N° 001" required>
+                </div>
+              </div>
+
+              <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">
+                <i class="bi bi-list-columns-reverse me-2"></i>Cuentas y Movimientos Contables
+              </h5>
+
+              <!-- Dynamic Accounts Table (Incluye columna Parcial) -->
+              <div class="table-responsive mb-3">
+                <table class="table table-bordered table-hover align-middle" id="tablaDetalles">
+                  <thead class="table-light">
+                    <tr>
+                      <th style="width: 40%;">Cuenta Contable</th>
+                      <th style="width: 15%;" class="text-end">Parcial ($)</th>
+                      <th style="width: 15%;" class="text-end">Debe ($)</th>
+                      <th style="width: 15%;" class="text-end">Haber ($)</th>
+                      <th style="width: 15%;" class="text-center">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody id="filasDetalles">
+                    <!-- Dynamic Rows Inserted by JavaScript -->
+                  </tbody>
+                  <tfoot class="table-group-divider fw-bold bg-light">
+                    <tr>
+                      <td class="text-end">TOTALES:</td>
+                      <td></td>
+                      <td class="text-end text-success fs-5" id="totalDebeCell">$0.00</td>
+                      <td class="text-end text-primary fs-5" id="totalHaberCell">$0.00</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <!-- Bottom Controls & Balance Indicator -->
+              <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 pt-2">
+                <div>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAgregarFila">
+                    <i class="bi bi-plus-lg me-1"></i> Agregar Línea de Cuenta
+                  </button>
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
+                  <div id="indicadorBalance" class="balance-badge unbalanced">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Descuadrado (Diferencia: $0.00)
+                  </div>
+
+                  <button type="submit" class="btn btn-primary px-4 fw-semibold" id="btnGuardarPartida" disabled>
+                    <i class="bi bi-check-circle me-1"></i> Guardar Partida
+                  </button>
+                </div>
+              </div>
+
+            </form>
+          </div>
+        </div>
+
+        <!-- Registered Entries History Section con Botones de Exportación -->
+        <div class="card custom-card">
+          <div class="custom-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="bi bi-journal-text me-2 text-dark"></i> Historial de Partidas Registradas en Libro Diario</span>
+            
+            <!-- Grupo de Botones de Exportación, Acciones y Borrado -->
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+              <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-success" onclick="exportarExcel()">
+                  <i class="bi bi-file-earmark-excel me-1"></i> Excel
+                </button>
+                <button type="button" class="btn btn-outline-danger" onclick="exportarPDF()">
+                  <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="imprimirDiario()">
+                  <i class="bi bi-printer me-1"></i> Imprimir
+                </button>
+              </div>
+
+              <button type="button" class="btn btn-outline-primary btn-sm" onclick="restablecerDemo()" title="Cargar ejercicio de prueba completo">
+                <i class="bi bi-arrow-repeat me-1"></i> Cargar Demo
+              </button>
+
+              <button type="button" class="btn btn-outline-danger btn-sm" onclick="vaciarLibroDiario()" title="Borrar todas las partidas">
+                <i class="bi bi-trash3 me-1"></i> Vaciar Todo
+              </button>
+            </div>
+          </div>
+
+          <div class="card-body p-4">
+            <div id="historialPartidasContainer">
+              <div class="text-center text-muted py-3">Cargando partidas registradas...</div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+
+      <footer class="mt-auto py-3 bg-white border-top text-center text-muted small">
+        <div class="container">
+          &copy; 2026 Sistema de Gestión Contable y Estados Financieros
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Modal Asistente de Ajuste de Inventarios -->
+  <div class="modal fade" id="modalAjusteInventarios" tabindex="-1" aria-labelledby="modalAjusteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow-lg border-0 rounded-4">
+        <div class="modal-header bg-warning-subtle text-dark border-0">
+          <h5 class="modal-title fw-bold" id="modalAjusteLabel">
+            <i class="bi bi-magic me-2 text-warning"></i> Asistente de Ajuste de Inventarios
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body p-4">
+          <p class="text-muted small mb-3">
+            Este asistente genera automáticamente los asientos de <strong>Mercancía Disponible</strong>, <strong>Inventario Final</strong> y <strong>Costo de Ventas</strong> para que el Estado de Resultados quede limpio con únicamente el Costo de Ventas.
+          </p>
+          <div id="modalAjusteAlert"></div>
+          <form id="formAjusteInventarios">
+            <div class="mb-3">
+              <label for="fechaAjusteInput" class="form-label fw-semibold">Fecha del Ajuste</label>
+              <input type="date" class="form-control" id="fechaAjusteInput" required>
+            </div>
+            <div class="mb-3">
+              <label for="invFinalInput" class="form-label fw-semibold">Inventario Final Físico ($)</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" step="0.01" min="0" class="form-control" id="invFinalInput" placeholder="Ej. 6000.00" required>
+              </div>
+              <div class="form-text">Monto en dólares determinado por el conteo físico al cierre.</div>
+            </div>
+            <div class="d-grid gap-2 mt-4">
+              <button type="submit" class="btn btn-warning fw-bold text-dark" id="btnEjecutarAjuste">
+                <i class="bi bi-check2-circle me-1"></i> Generar Asientos de Ajuste
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/diario.js"></script>
+  <script>
+    // Inicializar el calendario del sidebar de forma estática
+    document.addEventListener('DOMContentLoaded', () => {
+      const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      let mesSeleccionado = parseInt(localStorage.getItem('mes_activo_contable'));
+      if (isNaN(mesSeleccionado)) mesSeleccionado = 8; // Septiembre por defecto
+
+      const grid = document.getElementById('periodGridSidebar');
+      if (grid) {
+        meses.forEach((m, i) => {
+          const cell = document.createElement('div');
+          cell.className = 'period-cell' + (i === mesSeleccionado ? ' is-now' : '');
+          cell.textContent = m;
+          grid.appendChild(cell);
+        });
+      }
+
+      // Sincronizar nombre del usuario si existe la sesión
+      const userSession = JSON.parse(localStorage.getItem('usuario_contable') || '{}');
+      if (userSession.nombre) {
+        const uName = document.getElementById('navUserName');
+        const uRole = document.getElementById('navUserRole');
+        const uAvatar = document.getElementById('userAvatar');
+        if (uName) uName.textContent = userSession.nombre;
+        if (uRole) {
+          uRole.textContent = userSession.rol || 'Administrador';
+          uRole.className = 'role';
+        }
+        if (uAvatar) uAvatar.textContent = userSession.nombre.charAt(0).toUpperCase();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kardex de Inventario - Sistema Contable</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="css/styles.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    :root{
+      --bg:#EEF2F8;
+      --surface:#FFFFFF;
+      --border:#E7EBF3;
+      --text:#16202C;
+      --muted:#7A8699;
+      --sidebar-1:#0B2233;
+      --sidebar-2:#0E4D48;
+      --radius:16px;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; height:100%; overflow:hidden; }
+    body{
+      font-family:'Inter', system-ui, sans-serif;
+      color:var(--text);
+      background:var(--bg);
+    }
+    a{ text-decoration:none; color:inherit; }
+
+    .app-shell{ display:flex; height:100vh; width:100vw; overflow:hidden; }
+
+    .app-sidebar{
+      width:250px;
+      flex-shrink:0;
+      background:linear-gradient(200deg, var(--sidebar-1), var(--sidebar-2) 130%);
+      color:#CBD8E3;
+      padding:1.5rem 1.15rem;
+      height:100vh;
+      display:flex; flex-direction:column;
+      border-radius:0 22px 22px 0;
+      overflow-y:auto;
+    }
+    .sidebar-brand{
+      display:flex; align-items:center; gap:.7rem;
+      color:#fff; font-weight:700; font-size:1rem;
+      padding:.3rem .3rem 1.6rem;
+    }
+    .sidebar-brand .mark{
+      width:38px; height:38px; border-radius:11px;
+      background:rgba(255,255,255,.12);
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.15rem; color:#4FE0C3;
+    }
+    .sidebar-nav{ list-style:none; margin:0; padding:0; }
+    .sidebar-nav li + li{ margin-top:.3rem; }
+    .sidebar-link{
+      display:flex; align-items:center; gap:.75rem;
+      padding:.7rem .85rem;
+      border-radius:11px;
+      font-size:.9rem; font-weight:500;
+      color:#B7C6D6;
+    }
+    .sidebar-link i{ font-size:1.05rem; width:1.1rem; text-align:center; }
+    .sidebar-link:hover{ background:rgba(255,255,255,.06); color:#fff; }
+    .sidebar-link.active{
+      background:rgba(255,255,255,.14);
+      color:#fff;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+    }
+
+    .sidebar-foot{
+      margin-top:auto;
+      padding-top:1.25rem;
+      font-size:.72rem;
+      color:#5E7488;
+      line-height:1.5;
+    }
+
+    .app-main{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      height:100vh;
+      overflow:hidden;
+      background:var(--bg);
+    }
+    .app-topbar{
+      height:68px;
+      padding:0 2rem;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid var(--border);
+      background:rgba(255,255,255,.8);
+      backdrop-filter:blur(8px);
+      flex-shrink:0;
+    }
+    .topbar-user{ display:flex; align-items:center; gap:1rem; }
+    .topbar-user .meta{ text-align:right; }
+    .topbar-user .name{ font-size:.86rem; font-weight:700; color:var(--text); line-height:1.2; }
+    .topbar-user .role{ font-size:.74rem; color:var(--muted); }
+    .topbar-user .avatar{
+      width:38px; height:38px; border-radius:50%;
+      background:linear-gradient(135deg, #3B7CF0, #6C63F5);
+      color:#fff; font-weight:700; font-size:.9rem;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .btn-logout{
+      border:none; background:transparent; color:#C93B3B;
+      font-size:.82rem; font-weight:600; display:flex; align-items:center; gap:.3rem;
+      cursor:pointer; padding:.4rem .6rem; border-radius:8px;
+    }
+    .btn-logout:hover{ background:#FDECEC; }
+
+    .app-content{
+      flex:1;
+      overflow-y:auto;
+      padding:2rem 2.25rem 3rem;
+    }
+
+    /* Tarjetas KPI */
+    .kpi-kardex{
+      background:#fff;
+      border-radius:14px;
+      border:1px solid var(--border);
+      padding:1.25rem;
+      box-shadow:0 2px 6px rgba(0,0,0,.03);
+    }
+    .kpi-kardex .label{ font-size:.8rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+    .kpi-kardex .val-dinero{ font-size:1.6rem; font-weight:800; color:var(--text); }
+    .kpi-kardex .val-cant{ font-size:.85rem; color:#4A5568; font-weight:600; }
+
+    /* Tabla de Kardex Estilo Contable Formal */
+    .kardex-table th, .kardex-table td{ vertical-align:middle; font-size:.85rem; }
+    .kardex-th-group{ text-align:center; font-weight:700; letter-spacing:.5px; }
+    .badge-mov-inicial{ background:#E2E8F0; color:#334155; }
+    .badge-mov-entrada{ background:#DEF7EC; color:#03543F; font-weight:700; }
+    .badge-mov-salida{ background:#FDE8E8; color:#9B1C1C; font-weight:700; }
+    .badge-mov-dev-compra{ background:#FEF08A; color:#854D0E; font-weight:700; }
+    .badge-mov-dev-venta{ background:#E0F2FE; color:#0369A1; font-weight:700; }
+  </style>
+</head>
+<body>
+
+  <div class="app-shell">
+
+    <!-- Sidebar Estático -->
+    <aside class="app-sidebar">
+      <div class="sidebar-brand">
+        <span class="mark"><i class="bi bi-bank"></i></span>
+        <span>Sistema Contable</span>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li><a class="sidebar-link" href="dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+        <li><a class="sidebar-link" href="diario.html"><i class="bi bi-journal-plus"></i> Libro Diario</a></li>
+        <li><a class="sidebar-link" href="mayor.html"><i class="bi bi-journals"></i> Libro Mayor</a></li>
+        <li><a class="sidebar-link" href="estados.html"><i class="bi bi-file-earmark-bar-graph"></i> Estados Financieros</a></li>
+        <li><a class="sidebar-link active" href="kardex.html"><i class="bi bi-box-seam"></i> Kardex de Inventario</a></li>
+      </ul>
+
+      <div class="sidebar-foot">
+        &copy; 2026 Sistema Contable<br>Gestión de Inventarios y Almacén
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="app-main">
+
+      <!-- Topbar -->
+      <div class="app-topbar">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-semibold">
+            <i class="bi bi-check-circle me-1"></i> Control de Almacén Valuado
+          </span>
+        </div>
+        <div class="topbar-user">
+          <div class="meta">
+            <div id="navUserName" class="name">Usuario</div>
+            <div id="navUserRole" class="role">Rol</div>
+          </div>
+          <div class="avatar" id="userAvatar">U</div>
+          <button class="btn-logout" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Salir</button>
+        </div>
+      </div>
+
+      <!-- Content Area -->
+      <main class="app-content">
+
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+          <div>
+            <h2 class="fw-bold text-dark mb-1">Tarjeta de Almacén - Kardex de Inventario</h2>
+            <p class="text-muted mb-0">Control manual de entradas, salidas y valuación del Inventario Final para asientos de ajuste</p>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-primary fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoMovimiento">
+              <i class="bi bi-plus-circle me-1"></i> Registrar Movimiento
+            </button>
+            <button class="btn btn-warning fw-bold text-dark shadow-sm" onclick="aplicarAlLibroDiario()">
+              <i class="bi bi-send-check me-1"></i> Enviar Inv. Final a Ajustes
+            </button>
+            <button class="btn btn-outline-danger shadow-sm fw-semibold" onclick="confirmarVaciarKardex()" title="Eliminar todos los movimientos de la tarjeta de almacén">
+              <i class="bi bi-trash3 me-1"></i> Vaciar Kardex
+            </button>
+          </div>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <!-- 4 Tarjetas KPI de Resumen -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div class="kpi-kardex">
+              <div class="label text-secondary">Inventario Inicial</div>
+              <div class="val-dinero text-dark" id="kpiInvInicialDinero">$0.00</div>
+              <div class="val-cant" id="kpiInvInicialCant">0 unidades</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="kpi-kardex">
+              <div class="label text-primary">Compras del Periodo</div>
+              <div class="val-dinero text-primary" id="kpiComprasDinero">$0.00</div>
+              <div class="val-cant" id="kpiComprasCant">0 unidades adquiridas</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="kpi-kardex">
+              <div class="label text-danger">Costo de Ventas (Salidas)</div>
+              <div class="val-dinero text-danger" id="kpiSalidasDinero">$0.00</div>
+              <div class="val-cant" id="kpiSalidasCant">0 unidades vendidas</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="kpi-kardex border-success bg-success-subtle">
+              <div class="label text-success fw-bold">⭐ Inventario Final Resultante</div>
+              <div class="val-dinero text-success" id="kpiInvFinalDinero">$0.00</div>
+              <div class="val-cant text-success fw-semibold" id="kpiInvFinalCant">0 unidades en bodega</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card de la Tabla Kardex -->
+        <div class="card shadow-sm border-0 rounded-4">
+          <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-dark"><i class="bi bi-card-checklist me-2 text-primary"></i> Movimientos Físicos y Monetarios de Almacén</span>
+            <span class="badge bg-secondary" id="badgeMetodo">Método: Promedio Ponderado</span>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle mb-0 kardex-table" id="tablaKardex">
+              <thead class="table-light">
+                <!-- Fila 1: Encabezados agrupados -->
+                <tr class="text-center align-middle">
+                  <th rowspan="2" style="width: 100px;">Fecha</th>
+                  <th rowspan="2" style="min-width: 180px;">Detalle / Concepto</th>
+                  <th rowspan="2" style="width: 90px;">Tipo</th>
+                  <th colspan="3" class="kardex-th-group bg-primary-subtle text-primary">CANTIDADES (UNIDADES)</th>
+                  <th colspan="2" class="kardex-th-group bg-info-subtle text-dark">COSTOS UNITARIOS ($)</th>
+                  <th colspan="3" class="kardex-th-group bg-success-subtle text-success">VALORES MONETARIOS ($)</th>
+                  <th rowspan="2" style="width: 60px;">Acción</th>
+                </tr>
+                <!-- Fila 2: Subcolumnas -->
+                <tr class="text-center">
+                  <th class="bg-primary-subtle text-primary">Entrada</th>
+                  <th class="bg-primary-subtle text-primary">Salida</th>
+                  <th class="bg-primary-subtle text-primary fw-bold">Saldo</th>
+
+                  <th class="bg-info-subtle text-dark">Unitario</th>
+                  <th class="bg-info-subtle text-dark">Promedio</th>
+
+                  <th class="bg-success-subtle text-success">Debe</th>
+                  <th class="bg-success-subtle text-success">Haber</th>
+                  <th class="bg-success-subtle text-success fw-bold">Saldo</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyKardex">
+                <!-- Filas renderizadas por JS -->
+              </tbody>
+              <tfoot class="table-dark fw-bold" id="tfootKardex">
+                <!-- Totales calculados -->
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+      </main>
+
+      <footer class="mt-auto py-3 bg-white border-top text-center text-muted small">
+        <div class="container">
+          &copy; 2026 Sistema de Gestión Contable y Estados Financieros - Módulo Kardex
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Modal para Registrar Movimiento Manual en Kardex -->
+  <div class="modal fade" id="modalNuevoMovimiento" tabindex="-1" aria-labelledby="modalMovLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow-lg">
+        <div class="modal-header bg-primary text-white border-0">
+          <h5 class="modal-title fw-bold" id="modalMovLabel">
+            <i class="bi bi-box-arrow-in-down me-2"></i> Nuevo Movimiento en Kardex
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div id="modalAlert"></div>
+          <form id="formKardexMovimiento">
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label for="movFecha" class="form-label fw-semibold">Fecha</label>
+                <input type="date" class="form-control" id="movFecha" required>
+              </div>
+              <div class="col-md-6">
+                <label for="movTipo" class="form-label fw-semibold">Tipo de Movimiento</label>
+                <select class="form-select" id="movTipo" required onchange="onTipoMovChange()">
+                  <option value="INICIAL">Inventario Inicial</option>
+                  <option value="ENTRADA" selected>Entrada / Compra</option>
+                  <option value="SALIDA">Salida / Venta (Costo)</option>
+                  <option value="DEV_COMPRA">Devolución sobre Compra (Salida a Proveedor)</option>
+                  <option value="DEV_VENTA">Devolución sobre Venta (Entrada de Cliente)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="movDetalle" class="form-label fw-semibold">Concepto / Referencia de Documento</label>
+              <input type="text" class="form-control" id="movDetalle" placeholder="Ej. Compra según Factura N° 102" required>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label for="movCantidad" class="form-label fw-semibold">Cantidad (Unidades)</label>
+                <input type="number" step="0.01" min="0.01" class="form-control" id="movCantidad" placeholder="Ej. 500" required>
+              </div>
+              <div class="col-md-6">
+                <label for="movCostoUnitario" class="form-label fw-semibold">Costo Unitario ($)</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" step="0.0001" min="0" class="form-control" id="movCostoUnitario" placeholder="0.00">
+                </div>
+                <div class="form-text" id="helpCostoUnitario">Para salidas, si se deja en blanco se calculará por costo promedio ponderado.</div>
+              </div>
+            </div>
+
+            <div class="d-grid mt-4">
+              <button type="submit" class="btn btn-primary fw-bold" id="btnGuardarMov">
+                <i class="bi bi-save me-1"></i> Guardar en Kardex
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/kardex.js"></script>
+</body>
+</html>

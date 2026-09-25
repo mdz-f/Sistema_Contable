@@ -1,0 +1,28 @@
+{
+  "name": "sistema-contable",
+  "version": "1.0.0",
+  "description": "Sistema de Gestión Contable y Estados Financieros",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "init-db": "node database/init-db.js",
+    "seed": "node database/seed-ciclo-completo.js"
+  },
+  "keywords": [
+    "contabilidad",
+    "libro-diario",
+    "libro-mayor",
+    "estados-financieros",
+    "express",
+    "mysql2"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mysql2": "^3.9.7"
+  }
+}

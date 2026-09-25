@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Libro Mayor - Sistema Contable</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="css/styles.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/mayor.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style/dist/xlsx.bundle.js"></script>
+  <style>
+    :root{
+      --bg:#EEF2F8;
+      --surface:#FFFFFF;
+      --border:#E7EBF3;
+      --text:#16202C;
+      --muted:#7A8699;
+      --sidebar-1:#0B2233;
+      --sidebar-2:#0E4D48;
+      --blue-1:#3B7CF0; --blue-2:#63B3ED;
+      --green-1:#0FB88A; --green-2:#0A7F68;
+      --purple-1:#6C63F5; --purple-2:#8E7CF7;
+      --teal-1:#0E7C6B; --teal-2:#123A46;
+      --radius:16px;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; height:100%; overflow:hidden; }
+    body{
+      font-family:'Inter', system-ui, sans-serif;
+      color:var(--text);
+      background:var(--bg);
+    }
+    a{ text-decoration:none; color:inherit; }
+
+    .app-shell{ display:flex; height:100vh; width:100vw; overflow:hidden; }
+
+    /* ── Sidebar Estático ── */
+    .app-sidebar{
+      width:250px;
+      flex-shrink:0;
+      background:linear-gradient(200deg, var(--sidebar-1), var(--sidebar-2) 130%);
+      color:#CBD8E3;
+      padding:1.5rem 1.15rem;
+      height:100vh;
+      display:flex; flex-direction:column;
+      border-radius:0 22px 22px 0;
+      overflow-y:auto;
+    }
+    .sidebar-brand{
+      display:flex; align-items:center; gap:.7rem;
+      color:#fff; font-weight:700; font-size:1rem;
+      padding:.3rem .3rem 1.6rem;
+    }
+    .sidebar-brand .mark{
+      width:38px; height:38px; border-radius:11px;
+      background:rgba(255,255,255,.12);
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.15rem; color:#4FE0C3;
+    }
+    .sidebar-nav{ list-style:none; margin:0; padding:0; }
+    .sidebar-nav li + li{ margin-top:.3rem; }
+    .sidebar-link{
+      display:flex; align-items:center; gap:.75rem;
+      padding:.7rem .85rem;
+      border-radius:11px;
+      font-size:.9rem; font-weight:500;
+      color:#B7C6D6;
+    }
+    .sidebar-link i{ font-size:1.05rem; width:1.1rem; text-align:center; }
+    .sidebar-link:hover{ background:rgba(255,255,255,.06); color:#fff; }
+    .sidebar-link.active{
+      background:rgba(255,255,255,.14);
+      color:#fff;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+    }
+
+    .sidebar-period{
+      margin-top:1.75rem;
+      background:rgba(255,255,255,.06);
+      border-radius:14px;
+      padding:1rem;
+    }
+    .sidebar-period .label{ font-size:.72rem; color:#8FA3B8; margin-bottom:.6rem; font-weight:600; }
+    .period-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:.4rem; }
+    .period-cell{
+      text-align:center;
+      font-size:.72rem;
+      padding:.4rem 0;
+      border-radius:7px;
+      color:#B7C6D6;
+      background:rgba(255,255,255,.04);
+      cursor: default;
+    }
+    .period-cell.is-now{ background:#0FB88A; color:#04241C; font-weight:700; }
+
+    .sidebar-foot{
+      margin-top:auto;
+      padding-top:1.25rem;
+      font-size:.72rem;
+      color:#5E7488;
+      line-height:1.5;
+    }
+
+    /* ── Main Layout con Scroll Independiente ── */
+    .app-main{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      height:100vh;
+      overflow-y:auto;
+      min-width:0;
+    }
+    .app-topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:1.4rem 2rem 1rem;
+      gap:1rem;
+      background:var(--bg);
+      flex-shrink:0;
+    }
+    .topbar-user{ display:flex; align-items:center; gap:.9rem; flex-shrink:0; }
+    .topbar-user .meta{ text-align:right; line-height:1.2; }
+    .topbar-user .name{ font-weight:600; font-size:.86rem; }
+    .topbar-user .role{ font-size:.7rem; color:var(--muted); }
+    .avatar{
+      width:38px; height:38px; border-radius:50%;
+      background:linear-gradient(135deg, var(--blue-1), var(--purple-1));
+      display:flex; align-items:center; justify-content:center;
+      color:#fff; font-weight:700; font-size:.9rem;
+    }
+    .btn-logout{
+      border:1px solid var(--border); background:#fff;
+      padding:.4rem .7rem; border-radius:8px; font-size:.8rem;
+    }
+    .btn-logout:hover{ background:#F4F6FA; }
+    .mobile-toggle{
+      display:none; border:1px solid var(--border); background:#fff;
+      border-radius:8px; padding:.4rem .6rem;
+    }
+    @media (max-width:991px){
+      .app-sidebar{ display:none; }
+      .mobile-toggle{ display:inline-flex; }
+      html,body{ overflow:auto; }
+      .app-shell{ height:auto; overflow:visible; }
+      .app-main{ height:auto; overflow-y:visible; }
+    }
+
+    .app-content{ padding:0.5rem 2rem 2.5rem; flex:1; }
+
+    /* Estilos específicos para replicar la estructura de la T en la interfaz HTML */
+    .cuenta-t-card {
+      border: 1.5px solid #000 !important;
+    }
+    .cuenta-t-table {
+      table-layout: fixed;
+      border-color: #000 !important;
+      margin-bottom: 0;
+    }
+    .cuenta-t-table th, .cuenta-t-table td {
+      border-color: #000 !important;
+    }
+    .col-ref {
+      width: 12%;
+      text-align: center;
+      font-weight: bold;
+      color: #6c757d;
+      font-size: 0.85rem;
+      vertical-align: middle;
+      border-right: 1.5px solid #000;
+    }
+    .col-monto {
+      width: 38%;
+      text-align: right;
+      font-size: 0.9rem;
+      vertical-align: middle;
+      padding-right: 12px !important;
+    }
+    .debe-side {
+      border-right: 2px solid #000 !important;
+    }
+    .saldo-deudor {
+      background-color: #FCE4D6 !important; /* Naranja pastel */
+    }
+    .saldo-acreedor {
+      background-color: #E2EFDA !important; /* Verde pastel */
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-shell">
+
+    <!-- Sidebar Estático -->
+    <aside class="app-sidebar">
+      <div class="sidebar-brand">
+        <span class="mark"><i class="bi bi-bank"></i></span>
+        Sistema Contable
+      </div>
+
+      <ul class="sidebar-nav">
+        <li><a class="sidebar-link" href="dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+        <li><a class="sidebar-link" href="diario.html"><i class="bi bi-journal-plus"></i> Libro Diario</a></li>
+        <li><a class="sidebar-link active" href="mayor.html"><i class="bi bi-journals"></i> Libro Mayor</a></li>
+        <li><a class="sidebar-link" href="estados.html"><i class="bi bi-file-earmark-bar-graph"></i> Estados Financieros</a></li>
+        <li><a class="sidebar-link" href="kardex.html"><i class="bi bi-box-seam"></i> Kardex de Inventario</a></li>
+      </ul>
+
+      <div class="sidebar-period">
+        <div class="label">Periodo contable</div>
+        <div class="period-grid" id="periodGridSidebar"></div>
+      </div>
+
+      <div class="sidebar-foot">
+        &copy; 2026 Sistema Contable<br>Universidad Católica de El Salvador
+      </div>
+    </aside>
+
+    <!-- Mobile nav -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileNav" style="background:var(--sidebar-1); color:#CBD8E3;">
+      <div class="offcanvas-header">
+        <span class="sidebar-brand" style="padding:0;"><span class="mark"><i class="bi bi-bank"></i></span> Sistema Contable</span>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+      </div>
+      <div class="offcanvas-body">
+        <ul class="sidebar-nav">
+          <li><a class="sidebar-link" href="dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+          <li><a class="sidebar-link" href="diario.html"><i class="bi bi-journal-plus"></i> Libro Diario</a></li>
+          <li><a class="sidebar-link active" href="mayor.html"><i class="bi bi-journals"></i> Libro Mayor</a></li>
+          <li><a class="sidebar-link" href="estados.html"><i class="bi bi-file-earmark-bar-graph"></i> Estados Financieros</a></li>
+          <li><a class="sidebar-link" href="kardex.html"><i class="bi bi-box-seam"></i> Kardex de Inventario</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Main Content Area con Scroll Independiente -->
+    <div class="app-main">
+
+      <!-- Topbar -->
+      <div class="app-topbar">
+        <div class="d-flex align-items-center gap-2">
+          <button class="mobile-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNav">
+            <i class="bi bi-list fs-5"></i>
+          </button>
+        </div>
+        <div class="topbar-user">
+          <div class="meta">
+            <div id="navUserName" class="name">Usuario</div>
+            <div id="navUserRole" class="role">Rol</div>
+          </div>
+          <div class="avatar" id="userAvatar">U</div>
+          <button class="btn-logout" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Salir</button>
+        </div>
+      </div>
+
+      <main class="app-content">
+
+        <!-- Header Section -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h2 class="fw-bold text-dark mb-1">Libro Mayor y Mayorización Automática</h2>
+            <p class="text-muted mb-0">Consolidación en tiempo real agrupada únicamente por cuentas principales</p>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-outline-primary" onclick="imprimirMayor()">
+              <i class="bi bi-printer me-1"></i> Imprimir Mayor
+            </button>
+            <button class="btn btn-outline-danger" onclick="exportarPDF()">
+              <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+            </button>
+            <button class="btn btn-outline-success" onclick="exportarExcel()">
+              <i class="bi bi-file-earmark-excel me-1"></i> Excel
+            </button>
+            <button class="btn btn-outline-danger" onclick="limpiarMayor()" title="Vaciar Libro Mayor">
+              <i class="bi bi-trash3 me-1"></i> Limpiar Mayor
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="card custom-card mb-4 no-print">
+          <div class="card-body py-3">
+            <div class="row g-3 align-items-center">
+              <div class="col-md-4">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-search"></i></span>
+                  <input type="text" id="busquedaInput" class="form-control" placeholder="Buscar cuenta por código o nombre...">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <select id="filtroTipoSelect" class="form-select">
+                  <option value="todos">Todos los Tipos de Cuenta</option>
+                  <option value="1">1 - Activo (Deudora)</option>
+                  <option value="2">2 - Pasivo (Acreedora)</option>
+                  <option value="3">3 - Capital Contable (Acreedora)</option>
+                  <option value="4">4 - Costos y Gastos (Deudora)</option>
+                  <option value="5">5 - Ingresos (Acreedora)</option>
+                </select>
+              </div>
+              <div class="col-md-4 text-end">
+                <div class="btn-group" role="group">
+                  <button type="button" class="btn btn-primary active" id="btnVistaCuentasT">
+                    <i class="bi bi-grid-fill me-1"></i> Vista Cuentas en T
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" id="btnVistaTabla">
+                    <i class="bi bi-table me-1"></i> Tabla Resumen
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Container for Mayorization content -->
+        <div id="mayorContent">
+          <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Cargando Libro Mayor...</span>
+            </div>
+            <p class="text-muted mt-2">Mayorizando cuentas principales...</p>
+          </div>
+        </div>
+
+        <!-- SECCIÓN AÑADIDA: Totales Generales de Saldos (Deudor y Acreedor) del Libro Mayor -->
+        <div class="card custom-card mt-4" id="cardTotalesGeneralMayor">
+          <div class="card-body py-3">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+              <div>
+                <span class="fw-bold text-dark fs-6">
+                  <i class="bi bi-calculator me-2 text-primary"></i> Suma Total de Saldos del Libro Mayor:
+                </span>
+              </div>
+              <div class="d-flex gap-4">
+                <div class="text-end px-3 py-1 bg-light rounded border">
+                  <small class="text-muted d-block" style="font-size: 0.75rem;">Total Saldo Deudor</small>
+                  <span class="fw-bold text-success fs-5" id="sumaTotalSaldoDeudor">$0.00</span>
+                </div>
+                <div class="text-end px-3 py-1 bg-light rounded border">
+                  <small class="text-muted d-block" style="font-size: 0.75rem;">Total Saldo Acreedor</small>
+                  <span class="fw-bold text-primary fs-5" id="sumaTotalSaldoAcreedor">$0.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+
+      <footer class="mt-auto py-3 bg-white border-top text-center text-muted small">
+        <div class="container">
+          &copy; 2026 Sistema de Gestión Contable y Estados Financieros
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    // Inicializar el calendario del sidebar de forma estática (no interactiva)
+    document.addEventListener('DOMContentLoaded', () => {
+      const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      let mesSeleccionado = parseInt(localStorage.getItem('mes_activo_contable'));
+      if (isNaN(mesSeleccionado)) mesSeleccionado = 8; // Septiembre por defecto
+
+      const grid = document.getElementById('periodGridSidebar');
+      if (grid) {
+        meses.forEach((m, i) => {
+          const cell = document.createElement('div');
+          cell.className = 'period-cell' + (i === mesSeleccionado ? ' is-now' : '');
+          cell.textContent = m;
+          grid.appendChild(cell);
+        });
+      }
+
+      // Sincronizar nombre del usuario si existe la sesión
+      const userSession = JSON.parse(localStorage.getItem('usuario_contable') || '{}');
+      if (userSession.nombre) {
+        const uName = document.getElementById('navUserName');
+        const uRole = document.getElementById('navUserRole');
+        const uAvatar = document.getElementById('userAvatar');
+        if (uName) uName.textContent = userSession.nombre;
+        if (uRole) {
+          uRole.textContent = userSession.rol || 'Administrador';
+          uRole.className = 'role';
+        }
+        if (uAvatar) uAvatar.textContent = userSession.nombre.charAt(0).toUpperCase();
+      }
+    });
+  </script>
+</body>
+</html>

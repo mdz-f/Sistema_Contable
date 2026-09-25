@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estados Financieros - Sistema Contable</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="css/styles.css" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#EEF2F8;
+      --surface:#FFFFFF;
+      --border:#E7EBF3;
+      --text:#16202C;
+      --muted:#7A8699;
+      --sidebar-1:#0B2233;
+      --sidebar-2:#0E4D48;
+      --blue-1:#3B7CF0; --blue-2:#63B3ED;
+      --green-1:#0FB88A; --green-2:#0A7F68;
+      --purple-1:#6C63F5; --purple-2:#8E7CF7;
+      --teal-1:#0E7C6B; --teal-2:#123A46;
+      --radius:16px;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; height:100%; overflow:hidden; }
+    body{
+      font-family:'Inter', system-ui, sans-serif;
+      color:var(--text);
+      background:var(--bg);
+    }
+    a{ text-decoration:none; color:inherit; }
+
+    .app-shell{ display:flex; height:100vh; width:100vw; overflow:hidden; }
+
+    /* ── Sidebar Estático ── */
+    .app-sidebar{
+      width:250px;
+      flex-shrink:0;
+      background:linear-gradient(200deg, var(--sidebar-1), var(--sidebar-2) 130%);
+      color:#CBD8E3;
+      padding:1.5rem 1.15rem;
+      height:100vh;
+      display:flex; flex-direction:column;
+      border-radius:0 22px 22px 0;
+      overflow-y:auto;
+    }
+    .sidebar-brand{
+      display:flex; align-items:center; gap:.7rem;
+      color:#fff; font-weight:700; font-size:1rem;
+      padding:.3rem .3rem 1.6rem;
+    }
+    .sidebar-brand .mark{
+      width:38px; height:38px; border-radius:11px;
+      background:rgba(255,255,255,.12);
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.15rem; color:#4FE0C3;
+    }
+    .sidebar-nav{ list-style:none; margin:0; padding:0; }
+    .sidebar-nav li + li{ margin-top:.3rem; }
+    .sidebar-link{
+      display:flex; align-items:center; gap:.75rem;
+      padding:.7rem .85rem;
+      border-radius:11px;
+      font-size:.9rem; font-weight:500;
+      color:#B7C6D6;
+    }
+    .sidebar-link i{ font-size:1.05rem; width:1.1rem; text-align:center; }
+    .sidebar-link:hover{ background:rgba(255,255,255,.06); color:#fff; }
+    .sidebar-link.active{
+      background:rgba(255,255,255,.14);
+      color:#fff;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+    }
+
+    .sidebar-period{
+      margin-top:1.75rem;
+      background:rgba(255,255,255,.06);
+      border-radius:14px;
+      padding:1rem;
+    }
+    .sidebar-period .label{ font-size:.72rem; color:#8FA3B8; margin-bottom:.6rem; font-weight:600; }
+    .period-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:.4rem; }
+    .period-cell{
+      text-align:center;
+      font-size:.72rem;
+      padding:.4rem 0;
+      border-radius:7px;
+      color:#B7C6D6;
+      background:rgba(255,255,255,.04);
+      cursor: default;
+    }
+    .period-cell.is-now{ background:#0FB88A; color:#04241C; font-weight:700; }
+
+    .sidebar-foot{
+      margin-top:auto;
+      padding-top:1.25rem;
+      font-size:.72rem;
+      color:#5E7488;
+      line-height:1.5;
+    }
+
+    /* ── Main Layout con Scroll Independiente ── */
+    .app-main{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      height:100vh;
+      overflow-y:auto;
+      min-width:0;
+    }
+    .app-topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:1.4rem 2rem 1rem;
+      gap:1rem;
+      background:var(--bg);
+      flex-shrink:0;
+    }
+    .topbar-user{ display:flex; align-items:center; gap:.9rem; flex-shrink:0; }
+    .topbar-user .meta{ text-align:right; line-height:1.2; }
+    .topbar-user .name{ font-weight:600; font-size:.86rem; }
+    .topbar-user .role{ font-size:.7rem; color:var(--muted); }
+    .avatar{
+      width:38px; height:38px; border-radius:50%;
+      background:linear-gradient(135deg, var(--blue-1), var(--purple-1));
+      display:flex; align-items:center; justify-content:center;
+      color:#fff; font-weight:700; font-size:.9rem;
+    }
+    .btn-logout{
+      border:1px solid var(--border); background:#fff;
+      padding:.4rem .7rem; border-radius:8px; font-size:.8rem;
+    }
+    .btn-logout:hover{ background:#F4F6FA; }
+    .mobile-toggle{
+      display:none; border:1px solid var(--border); background:#fff;
+      border-radius:8px; padding:.4rem .6rem;
+    }
+    @media (max-width:991px){
+      .app-sidebar{ display:none; }
+      .mobile-toggle{ display:inline-flex; }
+      html,body{ overflow:auto; }
+      .app-shell{ height:auto; overflow:visible; }
+      .app-main{ height:auto; overflow-y:visible; }
+    }
+
+    .app-content{ padding:0.5rem 2rem 2.5rem; flex:1; }
+
+    /* ── Estilos Tabla Analítica de 4 Columnas ── */
+    .er-analitico-table {
+      font-size: 0.9rem;
+      border: 1px solid #d3dbe3;
+      background: #fff;
+    }
+    .er-analitico-table th {
+      background: #f1f5f9;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid #cbd5e1;
+      font-size: 0.8rem;
+    }
+    .er-analitico-table td {
+      padding: 0.45rem 0.75rem;
+      border: 1px solid #e2e8f0;
+      font-variant-numeric: tabular-nums;
+    }
+    .er-analitico-table .col-monto {
+      text-align: right;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-weight: 500;
+    }
+    .er-analitico-table .row-header-group {
+      background: #f8fafc;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      color: #1e293b;
+    }
+    .er-analitico-table .row-subtotal {
+      font-weight: 600;
+    }
+    .er-analitico-table .row-principal {
+      font-weight: 700;
+      background: #f0fdf4;
+    }
+    .er-analitico-table .double-underline {
+      border-bottom: 3px double #0f172a !important;
+    }
+
+    @media print {
+      .no-print { display: none !important; }
+      .app-sidebar, .app-topbar { display: none !important; }
+      .app-main { overflow: visible !important; height: auto !important; }
+      body { background: #fff !important; overflow: auto !important; }
+      .financial-report-card { box-shadow: none !important; border: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-shell">
+
+    <!-- Sidebar Estático -->
+    <aside class="app-sidebar">
+      <div class="sidebar-brand">
+        <span class="mark"><i class="bi bi-bank"></i></span>
+        Sistema Contable
+      </div>
+
+      <ul class="sidebar-nav">
+        <li><a class="sidebar-link" href="dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+        <li><a class="sidebar-link" href="diario.html"><i class="bi bi-journal-plus"></i> Libro Diario</a></li>
+        <li><a class="sidebar-link" href="mayor.html"><i class="bi bi-journals"></i> Libro Mayor</a></li>
+        <li><a class="sidebar-link active" href="estados.html"><i class="bi bi-file-earmark-bar-graph"></i> Estados Financieros</a></li>
+        <li><a class="sidebar-link" href="kardex.html"><i class="bi bi-box-seam"></i> Kardex de Inventario</a></li>
+      </ul>
+
+      <div class="sidebar-period">
+        <div class="label">Periodo contable</div>
+        <div class="period-grid" id="periodGridSidebar"></div>
+      </div>
+
+      <div class="sidebar-foot">
+        &copy; 2026 Sistema Contable<br>Universidad Católica de El Salvador
+      </div>
+    </aside>
+
+    <!-- Mobile nav -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileNav" style="background:var(--sidebar-1); color:#CBD8E3;">
+      <div class="offcanvas-header">
+        <span class="sidebar-brand" style="padding:0;"><span class="mark"><i class="bi bi-bank"></i></span> Sistema Contable</span>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+      </div>
+      <div class="offcanvas-body">
+        <ul class="sidebar-nav">
+          <li><a class="sidebar-link" href="dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+          <li><a class="sidebar-link" href="diario.html"><i class="bi bi-journal-plus"></i> Libro Diario</a></li>
+          <li><a class="sidebar-link" href="mayor.html"><i class="bi bi-journals"></i> Libro Mayor</a></li>
+          <li><a class="sidebar-link active" href="estados.html"><i class="bi bi-file-earmark-bar-graph"></i> Estados Financieros</a></li>
+          <li><a class="sidebar-link" href="kardex.html"><i class="bi bi-box-seam"></i> Kardex de Inventario</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Main Content Area con Scroll Independiente -->
+    <div class="app-main">
+
+      <!-- Topbar -->
+      <div class="app-topbar">
+        <div class="d-flex align-items-center gap-2">
+          <button class="mobile-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNav">
+            <i class="bi bi-list fs-5"></i>
+          </button>
+        </div>
+        <div class="topbar-user">
+          <div class="meta">
+            <div id="navUserName" class="name">Usuario</div>
+            <div id="navUserRole" class="role">Rol</div>
+          </div>
+          <div class="avatar" id="userAvatar">U</div>
+          <button class="btn-logout" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Salir</button>
+        </div>
+      </div>
+
+      <main class="app-content">
+
+        <!-- Header Section -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h2 class="fw-bold text-dark mb-1">Estados Financieros Dinámicos</h2>
+            <p class="text-muted mb-0">Emisión automática por clasificación del código contable y formato analítico de 4 columnas</p>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-outline-primary" onclick="window.print()">
+              <i class="bi bi-printer me-1"></i> Imprimir Reportes
+            </button>
+            <button class="btn btn-outline-danger" onclick="limpiarEstados()" title="Vaciar datos y reiniciar estados">
+              <i class="bi bi-trash3 me-1"></i> Reiniciar Estados
+            </button>
+          </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-pills mb-4 no-print" id="pills-tab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-semibold" id="pills-er-tab" data-bs-toggle="pill" data-bs-target="#pills-er" type="button" role="tab">
+              <i class="bi bi-graph-up me-1"></i> 1. Estado de Resultados
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="pills-bg-tab" data-bs-toggle="pill" data-bs-target="#pills-bg" type="button" role="tab">
+              <i class="bi bi-layout-split me-1"></i> 2. Balance General
+            </button>
+          </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="pills-tabContent">
+          
+          <!-- Tab 1: Estado de Resultados -->
+          <div class="tab-pane fade show active" id="pills-er" role="tabpanel">
+            <div class="financial-report-card">
+              <div class="report-header">
+                <h3 class="report-title">SISTEMA CONTABLE S.A. DE C.V.</h3>
+                <h4 class="text-primary fw-bold mb-1" id="erTituloDoc">ESTADO DE RESULTADOS ANALÍTICO (PORMENORIZADO)</h4>
+                <p class="text-muted mb-0" id="erFechaLabel">Al 31 de Diciembre (Expresado en Dólares de EE.UU. $)</p>
+
+                <!-- Selector de Vista: Analítica vs Condensada -->
+                <div class="d-flex justify-content-center gap-2 mt-3 no-print">
+                  <div class="btn-group p-1 bg-light border rounded-pill shadow-sm" role="group">
+                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold" id="btnVistaAnalitica" onclick="cambiarVistaER('analitica')">
+                      <i class="bi bi-columns-gap me-1"></i> Vista Analítica (4 Columnas)
+                    </button>
+                    <button type="button" class="btn btn-sm btn-light rounded-pill px-3 fw-semibold text-muted" id="btnVistaCondensada" onclick="cambiarVistaER('condensada')">
+                      <i class="bi bi-list-nested me-1"></i> Vista Condensada
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Botón Interactivo: Con Inventarios vs Sin Inventarios -->
+                <div class="mt-3 p-3 bg-light border rounded-4 shadow-sm mx-auto text-start no-print" style="max-width: 860px;">
+                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div>
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 small">
+                          <i class="bi bi-sliders me-1"></i> MODO INVENTARIO:
+                        </span>
+                        <span id="badgeModoInventario" class="fw-bold text-dark">Consultando...</span>
+                      </div>
+                      <small class="text-muted d-block mt-1" id="descModoInventario">
+                        Elige si los inventarios se calculan de forma automática o si generan partidas en el Libro Diario y Mayor.
+                      </small>
+                    </div>
+
+                    <div class="btn-group" role="group">
+                      <button type="button" class="btn btn-sm btn-outline-success fw-semibold px-3 py-2 text-start" id="btnModoConInv" onclick="aplicarModoInventarios('con_inventarios')">
+                        <i class="bi bi-magic me-1"></i> Con Inventarios
+                        <div class="small fw-normal text-muted" style="font-size: 0.75rem;">Auto en reporte (sin tocar Mayor)</div>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-primary fw-semibold px-3 py-2 text-start" id="btnModoSinInv" onclick="aplicarModoInventarios('sin_inventarios')">
+                        <i class="bi bi-journal-check me-1"></i> Sin Inventarios
+                        <div class="small fw-normal text-muted" style="font-size: 0.75rem;">Crear Asientos (Diario y Mayor)</div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div id="erContainer">
+                <div class="text-center py-4">
+                  <div class="spinner-border text-primary" role="status"></div>
+                  <p class="text-muted mt-2">Calculando Estado de Resultados...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Balance General -->
+          <div class="tab-pane fade" id="pills-bg" role="tabpanel">
+            <div class="financial-report-card">
+              <div class="report-header">
+                <h3 class="report-title">SISTEMA CONTABLE S.A. DE C.V.</h3>
+                <h4 class="text-success fw-bold mb-1">BALANCE GENERAL</h4>
+                <p class="text-muted mb-0" id="bgFechaLabel">Al 31 de Diciembre (Expresado en Dólares de EE.UU. $)</p>
+              </div>
+
+              <div id="bgContainer">
+                <div class="text-center py-4">
+                  <div class="spinner-border text-success" role="status"></div>
+                  <p class="text-muted mt-2">Calculando Balance General...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </main>
+
+      <footer class="mt-auto py-3 bg-white border-top text-center text-muted small">
+        <div class="container">
+          &copy; 2026 Sistema de Gestión Contable y Estados Financieros
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/estados.js"></script>
+  <script>
+    // Inicializar el calendario del sidebar de forma estática y sincronizar usuario
+    document.addEventListener('DOMContentLoaded', () => {
+      const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      let mesSeleccionado = parseInt(localStorage.getItem('mes_activo_contable'));
+      if (isNaN(mesSeleccionado)) mesSeleccionado = 8; // Septiembre por defecto
+
+      const grid = document.getElementById('periodGridSidebar');
+      if (grid) {
+        meses.forEach((m, i) => {
+          const cell = document.createElement('div');
+          cell.className = 'period-cell' + (i === mesSeleccionado ? ' is-now' : '');
+          cell.textContent = m;
+          grid.appendChild(cell);
+        });
+      }
+
+      // Sincronizar nombre del usuario si existe la sesión
+      const userSession = JSON.parse(localStorage.getItem('usuario_contable') || '{}');
+      if (userSession.nombre) {
+        const uName = document.getElementById('navUserName');
+        const uRole = document.getElementById('navUserRole');
+        const uAvatar = document.getElementById('userAvatar');
+        if (uName) uName.textContent = userSession.nombre;
+        if (uRole) {
+          uRole.textContent = userSession.rol || 'Administrador';
+          uRole.className = 'role';
+        }
+        if (uAvatar) uAvatar.textContent = userSession.nombre.charAt(0).toUpperCase();
+      }
+    });
+  </script>
+</body>
+</html>
