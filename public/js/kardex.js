@@ -178,17 +178,21 @@ function onTipoMovChange() {
   const cuInput = document.getElementById('movCostoUnitario');
 
   if (tipo === 'SALIDA') {
-    help.textContent = 'En salidas (ventas): Si se deja en 0.00 se aplicará automáticamente el Costo Promedio Ponderado.';
-    cuInput.placeholder = 'Opcional (Promedio)';
+    help.textContent = 'En ventas (salidas): Debe ingresar obligatoriamente el precio unitario de la venta.';
+    cuInput.placeholder = 'Obligatorio (Ej. 20.00)';
+    cuInput.required = true;
   } else if (tipo === 'DEV_COMPRA') {
     help.textContent = 'En devoluciones s/ compra (salida a proveedor): Indica el costo unitario de compra devuelto o 0 para promedio.';
     cuInput.placeholder = 'Costo de compra devuelto';
+    cuInput.required = false;
   } else if (tipo === 'DEV_VENTA') {
     help.textContent = 'En devoluciones s/ venta (reingreso de cliente): Indica el costo de salida original o 0 para promedio.';
     cuInput.placeholder = 'Costo de salida original';
+    cuInput.required = false;
   } else {
     help.textContent = 'En entradas e inicial: Debe indicar el costo unitario de adquisición.';
     cuInput.placeholder = 'Ej. 12.50';
+    cuInput.required = true;
   }
 }
 
@@ -205,6 +209,13 @@ async function guardarMovimiento(e) {
   const costo_unitario = document.getElementById('movCostoUnitario').value || 0;
 
   alertBox.innerHTML = '';
+
+  const cuVal = parseFloat(costo_unitario) || 0;
+  if ((tipo_movimiento === 'SALIDA' || tipo_movimiento === 'INICIAL' || tipo_movimiento === 'ENTRADA') && cuVal <= 0) {
+    alertBox.innerHTML = `<div class="alert alert-warning"><i class="bi bi-exclamation-triangle-fill me-1"></i> En movimientos de Venta o Compra es obligatorio ingresar un precio unitario mayor a $0.00.</div>`;
+    return;
+  }
+
   btn.disabled = true;
   btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Guardando...`;
 

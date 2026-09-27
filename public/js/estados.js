@@ -662,7 +662,7 @@ async function cargarBalanceGeneral() {
 
 // Limpiar estados financieros (Vaciar partidas)
 async function limpiarEstados() {
-  if (!confirm('⚠️ ¿Estás seguro de reiniciar los Estados Financieros?\n\nEsto eliminará todas las partidas registradas y dejará los saldos en $0.00.')) {
+  if (!confirm('¿Estás seguro de reiniciar los Estados Financieros?\n\nEsto eliminará todas las partidas registradas y dejará los saldos en $0.00.')) {
     return;
   }
 
@@ -682,3 +682,97 @@ async function limpiarEstados() {
   }
 }
 
+// --------------------------------------------------------
+// EXPORTACIÓN A EXCEL Y PDF
+// --------------------------------------------------------
+function exportarExcel() {
+  if (typeof XLSX === 'undefined') {
+    alert('La librería XLSX no está cargada. Intente recargar la página.');
+    return;
+  }
+
+  try {
+    const wb = XLSX.utils.book_new();
+
+    // 1. Hoja de Estado de Resultados
+    const erTable = document.querySelector('#pills-er table');
+    if (erTable) {
+      const wsER = XLSX.utils.table_to_sheet(erTable);
+      XLSX.utils.book_append_sheet(wb, wsER, "Estado_Resultados");
+    }
+
+    // 2. Hoja de Balance General (Tablas Activo, Pasivo, Capital)
+    const bgContainer = document.getElementById('balanceGeneralContainer');
+    if (bgContainer) {
+      const wsBG = XLSX.utils.table_to_sheet(bgContainer);
+      XLSX.utils.book_append_sheet(wb, wsBG, "Balance_General");
+    }
+
+    const fechaStr = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(wb, `Estados_Financieros_${fechaStr}.xlsx`);
+  } catch (err) {
+    console.error('Error al exportar a Excel:', err);
+    alert('Ocurrió un error al generar el archivo de Excel.');
+  }
+}
+
+function exportarPDF() {
+  if (typeof html2pdf !== 'undefined') {
+    const element = document.createElement('div');
+    element.style.padding = '25px';
+    element.style.background = '#ffffff';
+    element.style.color = '#1b2420';
+    element.style.fontFamily = 'Arial, sans-serif';
+
+    const fechaActual = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    element.innerHTML = `
+      <div style="text-align:center; margin-bottom: 25px; border-bottom: 2px solid #178F63; padding-bottom: 15px;">
+        <h2 style="margin: 0; color: #0B231C; font-size: 22px; font-weight: bold;">SISTEMA CONTABLE & FINANCIERO</h2>
+        <h4 style="margin: 5px 0 0 0; color: #178F63; font-size: 16px;">ESTADOS FINANCIEROS CONSOLIDADOS</h4>
+        <p style="margin: 4px 0 0 0; font-size: 12px; color: #6E7A70;">Emisión al ${fechaActual} | Expresado en $ USD</p>
+      </div>
+    `;
+
+    const erDiv = document.getElementById('pills-er');
+    const bgDiv = document.getElementById('pills-bg');
+
+    if (erDiv) {
+      const titleER = document.createElement('h4');
+      titleER.style.color = '#0B231C';
+      titleER.style.borderBottom = '1px solid #ddd';
+      titleER.style.paddingBottom = '5px';
+      titleER.style.marginTop = '20px';
+      titleER.textContent = '1. Estado de Resultados';
+      element.appendChild(titleER);
+
+      const cloneER = erDiv.cloneNode(true);
+      element.appendChild(cloneER);
+    }
+
+    if (bgDiv) {
+      const titleBG = document.createElement('h4');
+      titleBG.style.color = '#0B231C';
+      titleBG.style.borderBottom = '1px solid #ddd';
+      titleBG.style.paddingBottom = '5px';
+      titleBG.style.marginTop = '30px';
+      titleBG.textContent = '2. Balance General';
+      element.appendChild(titleBG);
+
+      const cloneBG = bgDiv.cloneNode(true);
+      element.appendChild(cloneBG);
+    }
+
+    const opt = {
+      margin:       [0.4, 0.4, 0.4, 0.4],
+      filename:     `Estados_Financieros_${new Date().toISOString().split('T')[0]}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(element).save();
+  } else {
+    window.print();
+  }
+}

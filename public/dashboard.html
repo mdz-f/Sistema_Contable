@@ -1,217 +1,487 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel Principal - Sistema Contable</title>
+  <script>(function () { try { if (localStorage.getItem('tema_contable') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); } } catch (e) { } })();</script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="css/styles.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
   <style>
-    :root{
-      --bg:#EEF2F8;
-      --surface:#FFFFFF;
-      --border:#E7EBF3;
-      --text:#16202C;
-      --muted:#7A8699;
-      --sidebar-1:#0B2233;
-      --sidebar-2:#0E4D48;
-      --blue-1:#3B7CF0; --blue-2:#63B3ED;
-      --green-1:#0FB88A; --green-2:#0A7F68;
-      --purple-1:#6C63F5; --purple-2:#8E7CF7;
-      --teal-1:#0E7C6B; --teal-2:#123A46;
-      --radius:16px;
+    :root {
+      --bg: #F5F2EA;
+      --surface: #FFFFFF;
+      --border: #E1DDCF;
+      --text: #1B2420;
+      --muted: #6E7A70;
+      --sidebar-1: #0B231C;
+      --sidebar-2: #123B2C;
+      --blue-1: #35657A;
+      --blue-2: #5C93A8;
+      --green-1: #178F63;
+      --green-2: #0C5A40;
+      --purple-1: #9C6B2E;
+      --purple-2: #C79A55;
+      --teal-1: #14503D;
+      --teal-2: #0A2E22;
+      --radius: 14px;
     }
-    *{ box-sizing:border-box; }
-    html,body{ margin:0; padding:0; }
-    body{
-      font-family:'Inter', system-ui, sans-serif;
-      color:var(--text);
-      background:var(--bg);
-    }
-    a{ text-decoration:none; color:inherit; }
 
-    .app-shell{ display:flex; min-height:100vh; }
+    [data-theme="dark"] {
+      --bg: #0E1613;
+      --surface: #16241F;
+      --border: #28392F;
+      --text: #E8EEE9;
+      --muted: #93A79B;
+      --sidebar-1: #060F0C;
+      --sidebar-2: #0E2019;
+      --blue-1: #5C93A8;
+      --blue-2: #8FBFCF;
+      --green-1: #22A57C;
+      --green-2: #147A5B;
+      --purple-1: #C79A55;
+      --purple-2: #E0BC7C;
+      --teal-1: #1B6A50;
+      --teal-2: #0F4433;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .app-shell {
+      display: flex;
+      min-height: 100vh;
+    }
 
     /* ── Sidebar ── */
-    .app-sidebar{
-      width:250px;
-      flex-shrink:0;
-      background:linear-gradient(200deg, var(--sidebar-1), var(--sidebar-2) 130%);
-      color:#CBD8E3;
-      padding:1.5rem 1.15rem;
-      position:sticky; top:0; height:100vh;
-      display:flex; flex-direction:column;
-      border-radius:0 22px 22px 0;
-    }
-    .sidebar-brand{
-      display:flex; align-items:center; gap:.7rem;
-      color:#fff; font-weight:700; font-size:1rem;
-      padding:.3rem .3rem 1.6rem;
-    }
-    .sidebar-brand .mark{
-      width:38px; height:38px; border-radius:11px;
-      background:rgba(255,255,255,.12);
-      display:flex; align-items:center; justify-content:center;
-      font-size:1.15rem; color:#4FE0C3;
-    }
-    .sidebar-nav{ list-style:none; margin:0; padding:0; }
-    .sidebar-nav li + li{ margin-top:.3rem; }
-    .sidebar-link{
-      display:flex; align-items:center; gap:.75rem;
-      padding:.7rem .85rem;
-      border-radius:11px;
-      font-size:.9rem; font-weight:500;
-      color:#B7C6D6;
-    }
-    .sidebar-link i{ font-size:1.05rem; width:1.1rem; text-align:center; }
-    .sidebar-link:hover{ background:rgba(255,255,255,.06); color:#fff; }
-    .sidebar-link.active{
-      background:rgba(255,255,255,.14);
-      color:#fff;
-      box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+    .app-sidebar {
+      width: 250px;
+      flex-shrink: 0;
+      background: linear-gradient(200deg, var(--sidebar-1), var(--sidebar-2) 130%);
+      color: #CBD8E3;
+      padding: 1.5rem 1.15rem;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      border-radius: 0 22px 22px 0;
     }
 
-    .sidebar-period{
-      margin-top:1.75rem;
-      background:rgba(255,255,255,.06);
-      border-radius:14px;
-      padding:1rem;
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: .7rem;
+      color: #fff;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: .3rem .3rem 1.6rem;
     }
-    .sidebar-period .label{ font-size:.72rem; color:#8FA3B8; margin-bottom:.6rem; font-weight:600; }
-    .period-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:.4rem; }
-    .period-cell{
-      text-align:center;
-      font-size:.72rem;
-      padding:.4rem 0;
-      border-radius:7px;
-      color:#B7C6D6;
-      background:rgba(255,255,255,.04);
-    }
-    .period-cell.is-now{ background:#0FB88A; color:#04241C; font-weight:700; }
 
-    .sidebar-foot{
-      margin-top:auto;
-      padding-top:1.25rem;
-      font-size:.72rem;
-      color:#5E7488;
-      line-height:1.5;
+    .sidebar-brand .mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      background: rgba(255, 255, 255, .12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      color: #4FE0C3;
+    }
+
+    .sidebar-nav {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .sidebar-nav li+li {
+      margin-top: .3rem;
+    }
+
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      padding: .7rem .85rem;
+      border-radius: 11px;
+      font-size: .9rem;
+      font-weight: 500;
+      color: #B7C6D6;
+    }
+
+    .sidebar-link i {
+      font-size: 1.05rem;
+      width: 1.1rem;
+      text-align: center;
+    }
+
+    .sidebar-link:hover {
+      background: rgba(255, 255, 255, .06);
+      color: #fff;
+    }
+
+    .sidebar-link.active {
+      background: rgba(255, 255, 255, .14);
+      color: #fff;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
+    }
+
+    .sidebar-period {
+      margin-top: 1.75rem;
+      background: rgba(255, 255, 255, .06);
+      border-radius: 14px;
+      padding: 1rem;
+    }
+
+    .sidebar-period .label {
+      font-size: .72rem;
+      color: #8FA3B8;
+      margin-bottom: .6rem;
+      font-weight: 600;
+    }
+
+    .period-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: .4rem;
+    }
+
+    .period-cell {
+      text-align: center;
+      font-size: .72rem;
+      padding: .4rem 0;
+      border-radius: 7px;
+      color: #B7C6D6;
+      background: rgba(255, 255, 255, .04);
+    }
+
+    .period-cell.is-now {
+      background: #0FB88A;
+      color: #04241C;
+      font-weight: 700;
+    }
+
+    .sidebar-foot {
+      margin-top: auto;
+      padding-top: 1.25rem;
+      font-size: .72rem;
+      color: #5E7488;
+      line-height: 1.5;
     }
 
     /* ── Main ── */
-    .app-main{ flex:1; min-width:0; }
-    .app-topbar{
-      display:flex; align-items:center; justify-content:space-between;
-      padding:1.4rem 2rem .5rem;
-      gap:1rem;
-    }
-    .topbar-title h1{ font-size:1.4rem; font-weight:700; margin:0 0 .15rem; }
-    .topbar-title p{ margin:0; font-size:.85rem; color:var(--muted); }
-    .topbar-user{ display:flex; align-items:center; gap:.9rem; flex-shrink:0; }
-    .topbar-user .meta{ text-align:right; line-height:1.2; }
-    .topbar-user .name{ font-weight:600; font-size:.86rem; }
-    .topbar-user .role{ font-size:.7rem; color:var(--muted); }
-    .avatar{
-      width:38px; height:38px; border-radius:50%;
-      background:linear-gradient(135deg, var(--blue-1), var(--purple-1));
-      display:flex; align-items:center; justify-content:center;
-      color:#fff; font-weight:700; font-size:.9rem;
-    }
-    .btn-logout{
-      border:1px solid var(--border); background:#fff;
-      padding:.4rem .7rem; border-radius:8px; font-size:.8rem;
-    }
-    .btn-logout:hover{ background:#F4F6FA; }
-    .mobile-toggle{
-      display:none; border:1px solid var(--border); background:#fff;
-      border-radius:8px; padding:.4rem .6rem;
-    }
-    @media (max-width:991px){
-      .app-sidebar{ display:none; }
-      .mobile-toggle{ display:inline-flex; }
+    .app-main {
+      flex: 1;
+      min-width: 0;
     }
 
-    .app-content{ padding:1.25rem 2rem 2.5rem; max-width:1280px; }
+    .app-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.4rem 2rem .5rem;
+      gap: 1rem;
+    }
+
+    .topbar-title h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin: 0 0 .15rem;
+    }
+
+    .topbar-title p {
+      margin: 0;
+      font-size: .85rem;
+      color: var(--muted);
+    }
+
+    .topbar-user {
+      display: flex;
+      align-items: center;
+      gap: .9rem;
+      flex-shrink: 0;
+    }
+
+    .topbar-user .meta {
+      text-align: right;
+      line-height: 1.2;
+    }
+
+    .topbar-user .name {
+      font-weight: 600;
+      font-size: .86rem;
+    }
+
+    .topbar-user .role {
+      font-size: .7rem;
+      color: var(--muted);
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue-1), var(--purple-1));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: .9rem;
+    }
+
+    .btn-logout {
+      border: 1px solid var(--border);
+      background: #fff;
+      padding: .4rem .7rem;
+      border-radius: 8px;
+      font-size: .8rem;
+    }
+
+    .btn-logout:hover {
+      background: #F4F6FA;
+    }
+
+    .mobile-toggle {
+      display: none;
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 8px;
+      padding: .4rem .6rem;
+    }
+
+    @media (max-width:991px) {
+      .app-sidebar {
+        display: none;
+      }
+
+      .mobile-toggle {
+        display: inline-flex;
+      }
+    }
+
+    .app-content {
+      padding: 1.25rem 2rem 2.5rem;
+      max-width: 1280px;
+    }
 
     /* ── KPI tiles ── */
-    .kpi-grid{
-      display:grid;
-      grid-template-columns:repeat(4, 1fr);
-      gap:1.1rem;
-      margin-bottom:1.5rem;
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.1rem;
+      margin-bottom: 1.5rem;
     }
-    @media (max-width:1100px){ .kpi-grid{ grid-template-columns:repeat(2,1fr); } }
-    @media (max-width:560px){ .kpi-grid{ grid-template-columns:1fr; } }
 
-    .kpi-tile{
-      border-radius:var(--radius);
-      padding:1.2rem 1.25rem;
-      color:#fff;
-      position:relative;
-      overflow:hidden;
-      min-height:118px;
-      display:flex; flex-direction:column; justify-content:space-between;
+    @media (max-width:900px) {
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
     }
-    .kpi-tile .kpi-icon{
-      position:absolute; right:1rem; top:1rem;
-      width:32px; height:32px; border-radius:9px;
-      background:rgba(255,255,255,.18);
-      display:flex; align-items:center; justify-content:center;
-      font-size:.95rem;
+
+    .kpi-tile {
+      border-radius: var(--radius);
+      padding: 1.2rem 1.25rem;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+      min-height: 118px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
-    .kpi-tile .kpi-label{ font-size:.78rem; font-weight:600; opacity:.92; }
-    .kpi-tile .kpi-value{ font-size:1.55rem; font-weight:800; margin-top:.35rem; }
-    .kpi-tile .kpi-sub{ font-size:.72rem; opacity:.85; margin-top:.15rem; }
-    .kpi-1{ background:linear-gradient(135deg, var(--blue-1), var(--blue-2)); }
-    .kpi-2{ background:linear-gradient(135deg, var(--green-1), var(--green-2)); }
-    .kpi-3{ background:linear-gradient(135deg, var(--purple-1), var(--purple-2)); }
-    .kpi-4{ background:linear-gradient(135deg, var(--teal-1), var(--teal-2)); }
+
+    .kpi-tile .kpi-icon {
+      position: absolute;
+      right: 1rem;
+      top: 1rem;
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      background: rgba(255, 255, 255, .18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .95rem;
+    }
+
+    .kpi-tile .kpi-label {
+      font-size: .78rem;
+      font-weight: 600;
+      opacity: .92;
+    }
+
+    .kpi-tile .kpi-value {
+      font-size: 1.55rem;
+      font-weight: 800;
+      margin-top: .35rem;
+    }
+
+    .kpi-tile .kpi-sub {
+      font-size: .72rem;
+      opacity: .85;
+      margin-top: .15rem;
+    }
+
+    .kpi-1 {
+      background: linear-gradient(135deg, var(--blue-1), var(--blue-2));
+    }
+
+    .kpi-2 {
+      background: linear-gradient(135deg, var(--green-1), var(--green-2));
+    }
+
+    .kpi-3 {
+      background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
+    }
 
     /* ── Cards ── */
-    .grid-2{ display:grid; grid-template-columns:1.5fr 1fr; gap:1.1rem; margin-bottom:1.1rem; }
-    @media (max-width:900px){ .grid-2{ grid-template-columns:1fr; } }
-
-    .card-panel{
-      background:var(--surface);
-      border:1px solid var(--border);
-      border-radius:var(--radius);
-      padding:1.4rem 1.5rem;
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 1.1rem;
+      margin-bottom: 1.1rem;
     }
-    .card-panel h2{ font-size:1rem; font-weight:700; margin:0 0 1rem; }
-    .chart-wrap{ position:relative; height:230px; }
-    .chart-wrap.small{ height:190px; }
 
-    .legend-row{ display:flex; gap:1.1rem; font-size:.78rem; color:var(--muted); margin-bottom:.9rem; }
-    .legend-dot{ width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:.35rem; }
+    @media (max-width:900px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.4rem 1.5rem;
+    }
+
+    .card-panel h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 0 0 1rem;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 230px;
+    }
+
+    .chart-wrap.small {
+      height: 190px;
+    }
+
+    .legend-row {
+      display: flex;
+      gap: 1.1rem;
+      font-size: .78rem;
+      color: var(--muted);
+      margin-bottom: .9rem;
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: .35rem;
+    }
 
     /* ── Accesos rápidos ── */
-    .quick-list{ display:flex; flex-direction:column; gap:.15rem; }
-    .quick-row{
-      display:flex; align-items:center; gap:.9rem;
-      padding:.85rem .25rem;
-      border-bottom:1px solid var(--border);
+    .quick-list {
+      display: flex;
+      flex-direction: column;
+      gap: .15rem;
     }
-    .quick-row:last-child{ border-bottom:none; }
-    .quick-icon{
-      width:40px; height:40px; border-radius:11px;
-      display:flex; align-items:center; justify-content:center;
-      font-size:1.05rem; color:#fff; flex-shrink:0;
+
+    .quick-row {
+      display: flex;
+      align-items: center;
+      gap: .9rem;
+      padding: .85rem .25rem;
+      border-bottom: 1px solid var(--border);
     }
-    .quick-body{ flex:1; min-width:0; }
-    .quick-body .t{ font-weight:600; font-size:.9rem; }
-    .quick-body .d{ font-size:.78rem; color:var(--muted); }
-    .quick-go{
-      font-size:.8rem; font-weight:700;
-      padding:.4rem .8rem; border-radius:8px;
-      background:#F1F4FA; color:var(--text);
-      flex-shrink:0;
+
+    .quick-row:last-child {
+      border-bottom: none;
     }
-    .quick-go:hover{ background:#E7ECF6; }
+
+    .quick-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .quick-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .quick-body .t {
+      font-weight: 600;
+      font-size: .9rem;
+    }
+
+    .quick-body .d {
+      font-size: .78rem;
+      color: var(--muted);
+    }
+
+    .quick-go {
+      font-size: .8rem;
+      font-weight: 700;
+      padding: .4rem .85rem;
+      border-radius: 8px;
+      background: var(--surface-2);
+      color: var(--text) !important;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .quick-go:hover {
+      background: var(--border);
+      color: var(--text) !important;
+    }
   </style>
 </head>
+
 <body>
 
   <div class="app-shell">
@@ -219,15 +489,16 @@
     <!-- Sidebar -->
     <aside class="app-sidebar">
       <div class="sidebar-brand">
-        <span class="mark"><i class="bi bi-bank"></i></span>
+        <span class="mark"><i class="bi bi-cash-stack"></i></span>
         Sistema Contable
       </div>
 
       <ul class="sidebar-nav">
-        <li><a class="sidebar-link active" href="dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+        <li><a class="sidebar-link active" href="dashboard.html"><i class="bi bi-clipboard-data"></i> Dashboard</a></li>
         <li><a class="sidebar-link" href="diario.html"><i class="bi bi-journal-plus"></i> Libro Diario</a></li>
-        <li><a class="sidebar-link" href="mayor.html"><i class="bi bi-journals"></i> Libro Mayor</a></li>
-        <li><a class="sidebar-link" href="estados.html"><i class="bi bi-file-earmark-bar-graph"></i> Estados Financieros</a></li>
+        <li><a class="sidebar-link" href="mayor.html"><i class="bi bi-book-half"></i> Libro Mayor</a></li>
+        <li><a class="sidebar-link" href="estados.html"><i class="bi bi-clipboard2-data"></i> Estados Financieros</a>
+        </li>
         <li><a class="sidebar-link" href="kardex.html"><i class="bi bi-box-seam"></i> Kardex de Inventario</a></li>
       </ul>
 
@@ -242,17 +513,21 @@
     </aside>
 
     <!-- Mobile nav -->
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileNav" style="background:var(--sidebar-1); color:#CBD8E3;">
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileNav"
+      style="background:var(--sidebar-1); color:#CBD8E3;">
       <div class="offcanvas-header">
-        <span class="sidebar-brand" style="padding:0;"><span class="mark"><i class="bi bi-bank"></i></span> Sistema Contable</span>
+        <span class="sidebar-brand" style="padding:0;"><span class="mark"><i class="bi bi-cash-stack"></i></span>
+          Sistema Contable</span>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
       </div>
       <div class="offcanvas-body">
         <ul class="sidebar-nav">
-          <li><a class="sidebar-link active" href="dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+          <li><a class="sidebar-link active" href="dashboard.html"><i class="bi bi-clipboard-data"></i> Dashboard</a>
+          </li>
           <li><a class="sidebar-link" href="diario.html"><i class="bi bi-journal-plus"></i> Libro Diario</a></li>
-          <li><a class="sidebar-link" href="mayor.html"><i class="bi bi-journals"></i> Libro Mayor</a></li>
-          <li><a class="sidebar-link" href="estados.html"><i class="bi bi-file-earmark-bar-graph"></i> Estados Financieros</a></li>
+          <li><a class="sidebar-link" href="mayor.html"><i class="bi bi-book-half"></i> Libro Mayor</a></li>
+          <li><a class="sidebar-link" href="estados.html"><i class="bi bi-clipboard2-data"></i> Estados Financieros</a>
+          </li>
           <li><a class="sidebar-link" href="kardex.html"><i class="bi bi-box-seam"></i> Kardex de Inventario</a></li>
         </ul>
       </div>
@@ -277,37 +552,33 @@
             <div id="navUserRole" class="role">Rol</div>
           </div>
           <div class="avatar" id="userAvatar">U</div>
-          <button class="btn-logout" onclick="logout()"><i class="bi bi-box-arrow-right"></i></button>
+          <button class="theme-toggle" id="btnThemeToggle" type="button" title="Cambiar tema"><i
+              class="bi bi-moon-stars" id="iconTema"></i></button>
+          <button class="btn-logout" onclick="cerrarAplicacion()" title="Cerrar Aplicación"><i class="bi bi-power text-danger"></i></button>
         </div>
       </div>
 
       <div class="app-content">
 
-        <!-- KPI tiles -->
+        <!-- KPI tiles (3 Tarjetas) -->
         <div class="kpi-grid">
           <div class="kpi-tile kpi-1">
             <span class="kpi-icon"><i class="bi bi-journal-plus"></i></span>
             <div class="kpi-label">Partidas registradas</div>
-            <div class="kpi-value" id="kpiPartidas">2</div>
+            <div class="kpi-value" id="kpiPartidas">0</div>
             <div class="kpi-sub">este periodo</div>
           </div>
           <div class="kpi-tile kpi-2">
-            <span class="kpi-icon"><i class="bi bi-journals"></i></span>
+            <span class="kpi-icon"><i class="bi bi-book-half"></i></span>
             <div class="kpi-label">Cuentas mayorizadas</div>
-            <div class="kpi-value" id="kpiCuentas">7</div>
-            <div class="kpi-sub">cuentas principales</div>
+            <div class="kpi-value" id="kpiCuentas">0</div>
+            <div class="kpi-sub">cuentas con movimientos</div>
           </div>
           <div class="kpi-tile kpi-3">
             <span class="kpi-icon"><i class="bi bi-calendar3"></i></span>
             <div class="kpi-label">Periodo activo</div>
-            <div class="kpi-value" id="kpiPeriodo">Sep 2026</div>
-            <div class="kpi-sub">año fiscal 2026</div>
-          </div>
-          <div class="kpi-tile kpi-4">
-            <span class="kpi-icon"><i class="bi bi-check-circle"></i></span>
-            <div class="kpi-label">Ecuación contable</div>
-            <div class="kpi-value" id="kpiEcuacion">Cuadrada</div>
-            <div class="kpi-sub" id="kpiEcuacionSub">Σ Debe = Σ Haber</div>
+            <div class="kpi-value" id="kpiPeriodo">-- 2026</div>
+            <div class="kpi-sub" id="kpiPeriodoSub">año fiscal 2026</div>
           </div>
         </div>
 
@@ -332,7 +603,7 @@
             <h2>Accesos rápidos</h2>
             <div class="quick-list">
               <div class="quick-row">
-                <span class="quick-icon" style="background:var(--blue-1);"><i class="bi bi-pencil-square"></i></span>
+                <span class="quick-icon" style="background:var(--blue-1);"><i class="bi bi-journal-plus"></i></span>
                 <div class="quick-body">
                   <div class="t">Libro Diario</div>
                   <div class="d">Registrar una nueva partida contable</div>
@@ -340,7 +611,7 @@
                 <a href="diario.html" class="quick-go">Abrir</a>
               </div>
               <div class="quick-row">
-                <span class="quick-icon" style="background:var(--green-1);"><i class="bi bi-journals"></i></span>
+                <span class="quick-icon" style="background:var(--green-1);"><i class="bi bi-book-half"></i></span>
                 <div class="quick-body">
                   <div class="t">Libro Mayor</div>
                   <div class="d">Ver saldos consolidados por cuenta</div>
@@ -367,7 +638,7 @@
           </div>
 
           <div class="card-panel">
-            <h2>Tendencia de saldos</h2>
+            <h2>Tendencia de partidas por mes</h2>
             <div class="chart-wrap small"><canvas id="chartTendencia"></canvas></div>
           </div>
         </div>
@@ -380,7 +651,31 @@
   <script src="js/auth.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // Datos del usuario logueado en caso de existir
+      const btnTema = document.getElementById('btnThemeToggle');
+      const iconTema = document.getElementById('iconTema');
+      const actualizarIcono = () => {
+        if (!iconTema) return;
+        const oscuro = document.documentElement.getAttribute('data-theme') === 'dark';
+        iconTema.className = oscuro ? 'bi bi-sun' : 'bi bi-moon-stars';
+      };
+      actualizarIcono();
+      if (btnTema) {
+        btnTema.addEventListener('click', () => {
+          const oscuro = document.documentElement.getAttribute('data-theme') === 'dark';
+          if (oscuro) {
+            document.documentElement.removeAttribute('data-theme');
+            localStorage.setItem('tema_contable', 'light');
+          } else {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('tema_contable', 'dark');
+          }
+          actualizarIcono();
+        });
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Datos del usuario logueado
       const userSession = JSON.parse(localStorage.getItem('usuario_contable') || '{}');
       if (userSession.nombre) {
         document.getElementById('navUserName').textContent = userSession.nombre;
@@ -389,31 +684,74 @@
       }
 
       // Periodo contable (mini calendario del sidebar)
-      const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
       const hoy = new Date();
-      const mesActual = hoy.getMonth(); // 8 para Septiembre
+      const mesActual = hoy.getMonth();
 
       const grid = document.getElementById('periodGrid');
-      meses.forEach((m, i) => {
-        const cell = document.createElement('div');
-        cell.className = 'period-cell' + (i === mesActual ? ' is-now' : '');
-        cell.textContent = m;
-        grid.appendChild(cell);
-      });
+      if (grid) {
+        grid.innerHTML = '';
+        meses.forEach((m, i) => {
+          const cell = document.createElement('div');
+          cell.className = 'period-cell' + (i === mesActual ? ' is-now' : '');
+          cell.textContent = m;
+          grid.appendChild(cell);
+        });
+      }
+
+      const kpiPeriodo = document.getElementById('kpiPeriodo');
+      if (kpiPeriodo) {
+        kpiPeriodo.textContent = `${meses[mesActual]} ${hoy.getFullYear()}`;
+      }
+      const kpiPeriodoSub = document.getElementById('kpiPeriodoSub');
+      if (kpiPeriodoSub) {
+        kpiPeriodoSub.textContent = `año fiscal ${hoy.getFullYear()}`;
+      }
 
       // Configuración de Gráficas con Chart.js
-      const fontColor = '#7A8699';
+      const estilos = getComputedStyle(document.documentElement);
+      const leerVar = (nombre, fallback) => (estilos.getPropertyValue(nombre) || fallback).trim();
+      const esOscuro = document.documentElement.getAttribute('data-theme') === 'dark';
+      const fontColor = leerVar('--muted', '#6E7A70');
+      const gridColor = esOscuro ? '#28392F' : '#ECE8DC';
+      const colorDebe = leerVar('--blue-1', '#35657A');
+      const colorHaber = leerVar('--green-1', '#178F63');
+      const colorGold = leerVar('--purple-1', '#9C6B2E');
       Chart.defaults.font.family = "'Inter', sans-serif";
       Chart.defaults.color = fontColor;
 
-      // Gráfica Debe vs Haber (Valores basados en las 2 partidas registradas en septiembre)
+      let dataDebe = Array(12).fill(0);
+      let dataHaber = Array(12).fill(0);
+      let dataTendencia = Array(12).fill(0);
+      let numDeudoras = 0;
+      let numAcreedoras = 0;
+
+      try {
+        const res = await fetch('/api/reportes/dashboard');
+        const json = await res.json();
+        if (json.success && json.data) {
+          document.getElementById('kpiPartidas').textContent = json.data.totalPartidas;
+          document.getElementById('kpiCuentas').textContent = json.data.cuentasMayorizadas;
+          dataDebe = json.data.debePorMes;
+          dataHaber = json.data.haberPorMes;
+          dataTendencia = json.data.partidasPorMes;
+          numDeudoras = json.data.naturaleza.deudoras;
+          numAcreedoras = json.data.naturaleza.acreedoras;
+        }
+      } catch (err) {
+        console.error('Error al cargar datos reales del dashboard:', err);
+      }
+
+      const labelsMeses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+      // Gráfica Debe vs Haber
       new Chart(document.getElementById('chartDebeHaber'), {
         type: 'bar',
         data: {
-          labels: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep'],
+          labels: labelsMeses,
           datasets: [
-            { label: 'Debe', data: [0, 0, 0, 0, 0, 0, 0, 0, 50588], backgroundColor: '#3B7CF0', borderRadius: 6, barPercentage: .55 },
-            { label: 'Haber', data: [0, 0, 0, 0, 0, 0, 0, 0, 93176], backgroundColor: '#0FB88A', borderRadius: 6, barPercentage: .55 }
+            { label: 'Debe', data: dataDebe, backgroundColor: colorDebe, borderRadius: 6, barPercentage: .55 },
+            { label: 'Haber', data: dataHaber, backgroundColor: colorHaber, borderRadius: 6, barPercentage: .55 }
           ]
         },
         options: {
@@ -421,17 +759,20 @@
           plugins: { legend: { display: false } },
           scales: {
             x: { grid: { display: false } },
-            y: { grid: { color: '#EEF1F7' }, ticks: { callback: v => '$' + v } }
+            y: { grid: { color: gridColor }, ticks: { callback: v => '$' + v } }
           }
         }
       });
 
       // Gráfica Cuentas por Naturaleza
+      const valDeudoras = numDeudoras > 0 ? numDeudoras : 0;
+      const valAcreedoras = numAcreedoras > 0 ? numAcreedoras : 0;
+
       new Chart(document.getElementById('chartNaturaleza'), {
         type: 'doughnut',
         data: {
           labels: ['Deudoras', 'Acreedoras'],
-          datasets: [{ data: [62, 38], backgroundColor: ['#0FB88A', '#F2A544'], borderWidth: 0 }]
+          datasets: [{ data: [valDeudoras, valAcreedoras], backgroundColor: [colorHaber, colorGold], borderWidth: 0 }]
         },
         options: {
           responsive: true, maintainAspectRatio: false,
@@ -440,15 +781,16 @@
         }
       });
 
-      // Gráfica Tendencia de Saldos
+      // Gráfica Tendencia de Partidas por Mes
       new Chart(document.getElementById('chartTendencia'), {
         type: 'line',
         data: {
-          labels: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep'],
+          labels: labelsMeses,
           datasets: [{
-            data: [0, 0, 0, 0, 0, 0, 0, 0, 2],
-            borderColor: '#6C63F5',
-            backgroundColor: 'rgba(108,99,245,.12)',
+            label: 'Partidas',
+            data: dataTendencia,
+            borderColor: colorGold,
+            backgroundColor: esOscuro ? 'rgba(224,188,124,.14)' : 'rgba(156,107,46,.12)',
             fill: true, tension: .4, pointRadius: 3, borderWidth: 2.5
           }]
         },
@@ -457,11 +799,12 @@
           plugins: { legend: { display: false } },
           scales: {
             x: { grid: { display: false } },
-            y: { grid: { color: '#EEF1F7' } }
+            y: { grid: { color: gridColor }, ticks: { stepSize: 1 } }
           }
         }
       });
     });
   </script>
 </body>
+
 </html>

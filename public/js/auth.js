@@ -69,16 +69,38 @@ function saveSession(usuario) {
   localStorage.setItem('usuario_contable', JSON.stringify(usuario));
 }
 
-// Obtener datos de la sesión actual
+// Obtener datos de la sesión actual (Por defecto Administrador en modo Escritorio)
 function getSession() {
   const data = localStorage.getItem('usuario_contable');
-  return data ? JSON.parse(data) : null;
+  if (data) {
+    try { return JSON.parse(data); } catch(e){}
+  }
+  const defaultUser = {
+    id: 1,
+    nombre: 'Administrador',
+    email: 'admin@contable.com',
+    rol_id: 1,
+    rol_nombre: 'Administrador'
+  };
+  localStorage.setItem('usuario_contable', JSON.stringify(defaultUser));
+  return defaultUser;
 }
 
-// Cerrar sesión
+// Reiniciar sesión en escritorio (Redirige a Dashboard)
 function logout() {
   localStorage.removeItem('usuario_contable');
-  window.location.href = 'index.html';
+  window.location.href = 'dashboard.html';
+}
+
+// Cerrar Aplicación de Escritorio
+function cerrarAplicacion() {
+  if (confirm('¿Deseas salir y cerrar la aplicación contable?')) {
+    try {
+      window.close();
+    } catch(e) {
+      console.log('Cierre de ventana');
+    }
+  }
 }
 
 // Mostrar alertas dinámicas
@@ -102,19 +124,15 @@ function showAlert(message, type = 'info') {
 // Verificar sesión requerida en páginas protegidas
 function checkAuthRequirement() {
   const session = getSession();
-  if (!session) {
-    window.location.href = 'index.html';
-    return null;
-  }
   
   // Actualizar nombre de usuario y rol en el Navbar si existen los elementos
   const navUserEl = document.getElementById('navUserName');
   const navRoleEl = document.getElementById('navUserRole');
 
-  if (navUserEl) navUserEl.textContent = session.nombre;
+  if (navUserEl) navUserEl.textContent = session.nombre || 'Administrador';
   if (navRoleEl) {
-    navRoleEl.textContent = session.rol_nombre;
-    navRoleEl.className = session.rol_id === 1 ? 'badge bg-danger ms-2' : 'badge bg-success ms-2';
+    navRoleEl.textContent = session.rol_nombre || 'Administrador';
+    navRoleEl.className = 'badge bg-danger ms-2';
   }
 
   return session;

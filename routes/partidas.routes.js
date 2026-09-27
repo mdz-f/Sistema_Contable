@@ -265,6 +265,137 @@ router.post('/ajuste-inventarios', async (req, res) => {
   }
 });
 
+// GET /api/partidas/:id - Obtener una partida específica con su detalle
+router.get('/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const [partidas] = await db.query(
+      `SELECT id, numero_partida, fecha, concepto, created_at FROM partidas WHERE id = ?`,
+      [id]
+    );
+
+    if (partidas.length === 0) {
+      return res.status(404).json({ success: false, message: 'Partida no encontrada.' });
+    }
+
+    const partida = partidas[0];
+    const [detalles] = await db.query(
+      `SELECT d.id, d.cuenta_id, c.codigo, c.nombre AS cuenta_nombre, c.naturaleza, d.parcial, d.debe, d.haber
+       FROM detalle_asiento d
+       INNER JOIN catalogo_cuentas c ON d.cuenta_id = c.id
+       WHERE d.partida_id = ?
+       ORDER BY d.id ASC`,
+      [partida.id]
+    );
+    partida.detalles = detalles;
+
+    res.json({ success: true, partida });
+  } catch (error) {
+    console.error('Error al obtener partida:', error);
+    res.status(500).json({ success: false, message: 'Error al obtener la partida.', error: error.message });
+  }
+});
+
+// PUT /api/partidas/:id - Actualizar una partida existente con validación de Partida Doble
+router.put('/:id', async (req, res) => {
+  const connection = await db.getConnection();
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { numero_partida, fecha, concepto, detalles } = req.body;
+
+    const [existing] = await connection.query('SELECT id FROM partidas WHERE id = ?', [id]);
+    if (existing.length === 0) {
+      return res.status(404).json({ success: false, message: 'La partida a editar no existe.' });
+    }
+
+    if (!fecha || !concepto || !concepto.trim()) {
+      return res.status(400).json({ success: false, message: 'La fecha y el concepto son obligatorios.' });
+    }
+
+    if (!Array.isArray(detalles) || detalles.length < 2) {
+      return res.status(400).json({ success: false, message: 'Una partida debe contener al menos dos movimientos contables.' });
+    }
+
+    let totalDebe = 0;
+    let totalHaber = 0;
+
+    for (let i = 0; i < detalles.length; i++) {
+      const det = detalles[i];
+      if (!det.cuenta_id) {
+        return res.status(400).json({ success: false, message: `Línea #${i + 1}: Debe seleccionar una cuenta contable.` });
+      }
+
+      const parcialVal = parseFloat(det.parcial || 0);
+      const debeVal = parseFloat(det.debe || 0);
+      const haberVal = parseFloat(det.haber || 0);
+
+      if (isNaN(parcialVal) || isNaN(debeVal) || isNaN(haberVal) || parcialVal < 0 || debeVal < 0 || haberVal < 0) {
+        return res.status(400).json({ success: false, message: `Línea #${i + 1}: Los montos no pueden ser negativos ni texto inválido.` });
+      }
+
+      if (parcialVal === 0 && debeVal === 0 && haberVal === 0) {
+        return res.status(400).json({ success: false, message: `Línea #${i + 1}: Debe ingresar un monto en Parcial, Debe o Haber.` });
+      }
+
+      totalDebe += debeVal;
+      totalHaber += haberVal;
+    }
+
+    totalDebe = Math.round(totalDebe * 100) / 100;
+    totalHaber = Math.round(totalHaber * 100) / 100;
+
+    if (totalDebe <= 0) {
+      return res.status(400).json({ success: false, message: 'El total del Debe debe ser mayor a 0.00.' });
+    }
+
+    if (totalDebe !== totalHaber) {
+      return res.status(400).json({
+        success: false,
+        message: `¡Error de Partida Doble! La suma del Debe ($${totalDebe.toFixed(2)}) no es igual a la suma del Haber ($${totalHaber.toFixed(2)}). Diferencia: $${Math.abs(totalDebe - totalHaber).toFixed(2)}.`
+      });
+    }
+
+    let numPartida = parseInt(numero_partida, 10);
+    if (isNaN(numPartida) || numPartida <= 0) {
+      numPartida = id;
+    }
+
+    await connection.beginTransaction();
+
+    await connection.query(
+      `UPDATE partidas SET numero_partida = ?, fecha = ?, concepto = ? WHERE id = ?`,
+      [numPartida, fecha, concepto.trim(), id]
+    );
+
+    await connection.query(`DELETE FROM detalle_asiento WHERE partida_id = ?`, [id]);
+
+    for (let det of detalles) {
+      const parcialVal = parseFloat(det.parcial || 0);
+      const debeVal = parseFloat(det.debe || 0);
+      const haberVal = parseFloat(det.haber || 0);
+
+      await connection.query(
+        `INSERT INTO detalle_asiento (partida_id, cuenta_id, parcial, debe, haber) VALUES (?, ?, ?, ?, ?)`,
+        [id, parseInt(det.cuenta_id, 10), parcialVal, debeVal, haberVal]
+      );
+    }
+
+    await connection.commit();
+
+    res.json({
+      success: true,
+      message: `Partida N° ${numPartida} actualizada exitosamente.`
+    });
+
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error al actualizar partida:', error);
+    res.status(500).json({ success: false, message: 'Error interno al actualizar la partida.', error: error.message });
+  } finally {
+    connection.release();
+  }
+});
+
 // DELETE /api/partidas/:id - Eliminar una partida individual
 router.delete('/:id', async (req, res) => {
   const connection = await db.getConnection();

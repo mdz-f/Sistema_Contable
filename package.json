@@ -1,13 +1,36 @@
 {
   "name": "sistema-contable",
+  "productName": "Sistema Contable",
   "version": "1.0.0",
   "description": "Sistema de Gestión Contable y Estados Financieros",
-  "main": "server.js",
+  "main": "main.js",
   "scripts": {
     "start": "node server.js",
+    "electron": "electron .",
+    "dist": "electron-builder --win",
     "dev": "node --watch server.js",
     "init-db": "node database/init-db.js",
     "seed": "node database/seed-ciclo-completo.js"
+  },
+  "build": {
+    "appId": "com.sistemacontable.app",
+    "productName": "Sistema Contable",
+    "npmRebuild": false,
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "portable",
+        "msi",
+        "nsis"
+      ],
+      "icon": "media/logoSistemaWeb.ico"
+    },
+    "files": [
+      "**/*",
+      "!dist/*"
+    ]
   },
   "keywords": [
     "contabilidad",
@@ -20,9 +43,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "better-sqlite3": "^13.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "mysql2": "^3.9.7"
+  },
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3"
   }
 }

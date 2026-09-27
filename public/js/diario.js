@@ -1,5 +1,3 @@
-// Lógica del Libro Diario y Validación en Tiempo Real de Partida Doble
-
 let catalogoCuentas = [];
 let contadorFilas = 0;
 let listaPartidasCargadas = [];
@@ -8,36 +6,39 @@ document.addEventListener('DOMContentLoaded', async () => {
   const session = checkAuthRequirement();
   if (!session) return;
 
-  // Establecer fecha de hoy por defecto
   const hoy = new Date().toISOString().split('T')[0];
   document.getElementById('fechaInput').value = hoy;
   const fechaAjuste = document.getElementById('fechaAjusteInput');
   if (fechaAjuste) fechaAjuste.value = hoy;
 
-  // Cargar catálogo de cuentas y correlativo
   await cargarCatalogo();
   await cargarSiguienteNumero();
   await cargarHistorialPartidas();
 
-  // Inicializar con 2 filas por defecto
   agregarFila();
   agregarFila();
 
-  // Listener para agregar filas
   document.getElementById('btnAgregarFila').addEventListener('click', () => {
     agregarFila();
   });
 
-  // Listener del formulario
   document.getElementById('partidaForm').addEventListener('submit', guardarPartida);
 
-  // Listener del Asistente de Ajuste de Inventarios
   const formAjuste = document.getElementById('formAjusteInventarios');
   if (formAjuste) {
     formAjuste.addEventListener('submit', ejecutarAjusteInventarios);
   }
 
-  // Verificar si viene transferido el Inventario Final desde el Kardex
+  const btnLiquidarIVA = document.getElementById('btnLiquidarIVA');
+  if (btnLiquidarIVA) {
+    btnLiquidarIVA.addEventListener('click', abrirModalLiquidacionIVA);
+  }
+
+  const formIVA = document.getElementById('formLiquidacionIVA');
+  if (formIVA) {
+    formIVA.addEventListener('submit', ejecutarLiquidacionIVADesdeModal);
+  }
+
   const urlParams = new URLSearchParams(window.location.search);
   const abrirAjuste = urlParams.get('abrirAjuste');
   const invFinalKardex = localStorage.getItem('inv_final_kardex');
@@ -121,6 +122,19 @@ function agregarFila() {
   `;
 
   tbody.appendChild(tr);
+
+  // Inicializar TomSelect en la cuenta para permitir escribir/buscar por código o nombre
+  const selectEl = tr.querySelector('.cuenta-select');
+  if (typeof TomSelect !== 'undefined') {
+    new TomSelect(selectEl, {
+      create: false,
+      maxOptions: 250,
+      placeholder: '-- Seleccionar o Escribir Cuenta --',
+      searchField: ['text'],
+      sortField: { field: "text", order: "asc" }
+    });
+  }
+
   calcularTotales();
 }
 
@@ -146,6 +160,10 @@ function eliminarFila(idFila) {
   }
   const fila = document.getElementById(`fila_${idFila}`);
   if (fila) {
+    const selectEl = fila.querySelector('.cuenta-select');
+    if (selectEl && selectEl.tomselect) {
+      selectEl.tomselect.destroy();
+    }
     fila.remove();
     calcularTotales();
   }
@@ -191,7 +209,10 @@ function calcularTotales() {
   }
 }
 
-// Guardar partida en Backend enviando Parcial, Debe y Haber
+let modoEdicion = false;
+let partidaEditarId = null;
+
+// Guardar o Actualizar partida en Backend enviando Parcial, Debe y Haber
 async function guardarPartida(e) {
   e.preventDefault();
   showAlert('', 'clear');
@@ -223,8 +244,11 @@ async function guardarPartida(e) {
   }
 
   try {
-    const res = await fetch('/api/partidas', {
-      method: 'POST',
+    const url = modoEdicion ? `/api/partidas/${partidaEditarId}` : '/api/partidas';
+    const method = modoEdicion ? 'PUT' : 'POST';
+
+    const res = await fetch(url, {
+      method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ numero_partida, fecha, concepto, detalles })
     });
@@ -233,23 +257,105 @@ async function guardarPartida(e) {
 
     if (data.success) {
       showAlert(data.message, 'success');
-      // Resetear formulario
-      document.getElementById('conceptoInput').value = '';
-      document.getElementById('filasDetalles').innerHTML = '';
-      agregarFila();
-      agregarFila();
-      await cargarSiguienteNumero();
+      if (modoEdicion) {
+        await cancelarEdicion();
+      } else {
+        document.getElementById('conceptoInput').value = '';
+        document.querySelectorAll('#filasDetalles .cuenta-select').forEach(s => { if (s.tomselect) s.tomselect.destroy(); });
+        document.getElementById('filasDetalles').innerHTML = '';
+        agregarFila();
+        agregarFila();
+        await cargarSiguienteNumero();
+      }
       await cargarHistorialPartidas();
     } else {
       showAlert(data.message, 'danger');
     }
   } catch (err) {
-    console.error('Error al guardar partida:', err);
+    console.error('Error al guardar/actualizar partida:', err);
     showAlert('Error de conexión con el servidor al intentar guardar.', 'danger');
   }
 }
 
-// Cargar historial de partidas del Libro Diario incluyendo la columna Parcial
+// Cargar partida en el formulario para editar
+async function cargarPartidaParaEditar(id) {
+  try {
+    const res = await fetch(`/api/partidas/${id}`);
+    const data = await res.json();
+    if (!data.success || !data.partida) {
+      showAlert('No se pudo cargar la partida para edición.', 'danger');
+      return;
+    }
+
+    const p = data.partida;
+    modoEdicion = true;
+    partidaEditarId = p.id;
+
+    const titleEl = document.getElementById('tituloFormCard');
+    if (titleEl) titleEl.innerHTML = `<i class="bi bi-pencil-square me-2 text-warning"></i> Editando Partida N° ${p.numero_partida}`;
+    const badgeNum = document.getElementById('badgeNumeroPartida');
+    if (badgeNum) badgeNum.textContent = `Editando N° ${p.numero_partida}`;
+    
+    const btnGuardar = document.getElementById('btnGuardarPartida');
+    if (btnGuardar) btnGuardar.innerHTML = `<i class="bi bi-check2-circle me-1"></i> Guardar Cambios`;
+
+    const btnCancel = document.getElementById('btnCancelarEdicion');
+    if (btnCancel) btnCancel.classList.remove('d-none');
+
+    document.getElementById('numeroPartidaInput').value = p.numero_partida;
+    document.getElementById('fechaInput').value = p.fecha;
+    document.getElementById('conceptoInput').value = p.concepto;
+
+    document.querySelectorAll('#filasDetalles .cuenta-select').forEach(s => { if (s.tomselect) s.tomselect.destroy(); });
+    document.getElementById('filasDetalles').innerHTML = '';
+
+    p.detalles.forEach(d => {
+      agregarFila();
+      const filaNueva = document.getElementById(`fila_${contadorFilas}`);
+      const selectEl = filaNueva.querySelector('.cuenta-select');
+      if (selectEl.tomselect) {
+        selectEl.tomselect.setValue(d.cuenta_id);
+      } else {
+        selectEl.value = d.cuenta_id;
+      }
+      filaNueva.querySelector('.parcial-input').value = parseFloat(d.parcial || 0) > 0 ? parseFloat(d.parcial).toFixed(2) : '';
+      filaNueva.querySelector('.debe-input').value = parseFloat(d.debe || 0) > 0 ? parseFloat(d.debe).toFixed(2) : '';
+      filaNueva.querySelector('.haber-input').value = parseFloat(d.haber || 0) > 0 ? parseFloat(d.haber).toFixed(2) : '';
+    });
+
+    calcularTotales();
+
+    document.getElementById('partidaFormCard').scrollIntoView({ behavior: 'smooth' });
+
+  } catch (err) {
+    console.error('Error al cargar partida para editar:', err);
+    showAlert('Error al cargar la partida.', 'danger');
+  }
+}
+
+// Cancelar modo edición y volver a modo creación
+async function cancelarEdicion() {
+  modoEdicion = false;
+  partidaEditarId = null;
+
+  const titleEl = document.getElementById('tituloFormCard');
+  if (titleEl) titleEl.innerHTML = `<i class="bi bi-journal-plus me-2 text-primary"></i> Nueva Partida Contable`;
+  
+  const btnGuardar = document.getElementById('btnGuardarPartida');
+  if (btnGuardar) btnGuardar.innerHTML = `<i class="bi bi-check-circle me-1"></i> Guardar Partida`;
+
+  const btnCancel = document.getElementById('btnCancelarEdicion');
+  if (btnCancel) btnCancel.classList.add('d-none');
+
+  document.getElementById('conceptoInput').value = '';
+  document.querySelectorAll('#filasDetalles .cuenta-select').forEach(s => { if (s.tomselect) s.tomselect.destroy(); });
+  document.getElementById('filasDetalles').innerHTML = '';
+  agregarFila();
+  agregarFila();
+  await cargarSiguienteNumero();
+}
+
+// Cargar historial de partidas del Libro Diario incluyendo la columna Parcial y botones de Acción
 async function cargarHistorialPartidas() {
   const container = document.getElementById('historialPartidasContainer');
   try {
@@ -267,75 +373,140 @@ async function cargarHistorialPartidas() {
     }
 
     listaPartidasCargadas = data.partidas;
-    let html = '';
-    
-    data.partidas.forEach(p => {
-      let filasHtml = '';
-      let sumDebe = 0;
-      let sumHaber = 0;
-
-      p.detalles.forEach(d => {
-        const dParcial = parseFloat(d.parcial || 0);
-        const dDebe = parseFloat(d.debe || 0);
-        const dHaber = parseFloat(d.haber || 0);
-        sumDebe += dDebe;
-        sumHaber += dHaber;
-
-        filasHtml += `
-          <tr>
-            <td>${d.codigo} - ${d.cuenta_nombre || d.nombre}</td>
-            <td class="text-end">${dParcial > 0 ? '$' + dParcial.toFixed(2) : ''}</td>
-            <td class="text-end">${dDebe > 0 ? '$' + dDebe.toFixed(2) : ''}</td>
-            <td class="text-end">${dHaber > 0 ? '$' + dHaber.toFixed(2) : ''}</td>
-          </tr>
-        `;
-      });
-
-      html += `
-        <div class="border rounded-3 p-3 mb-4 bg-white shadow-sm">
-          <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom flex-wrap gap-2">
-            <div>
-              <span class="badge bg-dark fs-6 me-2">Partida N° ${p.numero_partida}</span>
-              <span class="text-muted fw-semibold"><i class="bi bi-calendar3 me-1"></i>${p.fecha}</span>
-            </div>
-            <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="eliminarPartida(${p.id}, ${p.numero_partida})" title="Eliminar Partida N° ${p.numero_partida}">
-              <i class="bi bi-trash me-1"></i> Eliminar
-            </button>
-          </div>
-          <p class="mb-3"><strong>Concepto:</strong> ${p.concepto}</p>
-          <div class="table-responsive">
-            <table class="table table-sm table-bordered mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>Cuenta Contable</th>
-                  <th class="text-end" style="width: 20%;">Parcial</th>
-                  <th class="text-end" style="width: 20%;">Debe</th>
-                  <th class="text-end" style="width: 20%;">Haber</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${filasHtml}
-              </tbody>
-              <tfoot class="fw-bold table-light">
-                <tr>
-                  <td class="text-end">TOTAL:</td>
-                  <td></td>
-                  <td class="text-end text-success">$${sumDebe.toFixed(2)}</td>
-                  <td class="text-end text-primary">$${sumHaber.toFixed(2)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      `;
-    });
-
-    container.innerHTML = html;
+    filtrarPartidasDiario();
 
   } catch (err) {
     console.error('Error al cargar historial:', err);
     container.innerHTML = `<div class="alert alert-danger">Error al cargar el Libro Diario.</div>`;
   }
+}
+
+// Filtrar en tiempo real las partidas registradas
+function filtrarPartidasDiario() {
+  const query = (document.getElementById('inputBuscarPartida')?.value || '').toLowerCase().trim();
+  if (!query) {
+    renderizarListaPartidas(listaPartidasCargadas);
+    return;
+  }
+
+  const isPureNumber = /^\d+$/.test(query);
+
+  const filtradas = listaPartidasCargadas.filter(p => {
+    // Si la búsqueda es un número corto (ej. "11", "1", "2"):
+    if (isPureNumber) {
+      const numQuery = parseInt(query, 10);
+      // Coincidencia exacta con el número de la partida
+      if (p.numero_partida === numQuery) return true;
+      // Solo buscar en código de cuenta contable si se ingresan 4 o más dígitos (ej. "1101")
+      if (query.length >= 4) {
+        return p.detalles.some(d => (d.codigo || '').startsWith(query));
+      }
+      return false;
+    }
+
+    // Búsqueda por texto general (ej. "partida 11", "compra", "2026-01-01", "caja")
+    const numMatch = (
+      `partida ${p.numero_partida}`.includes(query) ||
+      `partida n° ${p.numero_partida}`.includes(query) ||
+      `partida nº ${p.numero_partida}`.includes(query) ||
+      `p${p.numero_partida}`.includes(query) ||
+      `#${p.numero_partida}`.includes(query)
+    );
+    const fechaMatch = (p.fecha || '').toLowerCase().includes(query);
+    const conceptoMatch = (p.concepto || '').toLowerCase().includes(query);
+    const cuentaMatch = p.detalles.some(d => 
+      (d.codigo || '').toLowerCase().includes(query) || 
+      (d.cuenta_nombre || d.nombre || '').toLowerCase().includes(query)
+    );
+
+    return numMatch || fechaMatch || conceptoMatch || cuentaMatch;
+  });
+
+  renderizarListaPartidas(filtradas);
+}
+
+// Renderizar la lista de partidas procesada
+function renderizarListaPartidas(partidas) {
+  const container = document.getElementById('historialPartidasContainer');
+  if (!container) return;
+
+  if (!partidas || partidas.length === 0) {
+    container.innerHTML = `
+      <div class="alert alert-warning text-center mb-0">
+        <i class="bi bi-search me-1"></i> No se encontraron asientos contables que coincidan con la búsqueda.
+      </div>
+    `;
+    return;
+  }
+
+  let html = '';
+  partidas.forEach(p => {
+    let filasHtml = '';
+    let sumDebe = 0;
+    let sumHaber = 0;
+
+    p.detalles.forEach(d => {
+      const dParcial = parseFloat(d.parcial || 0);
+      const dDebe = parseFloat(d.debe || 0);
+      const dHaber = parseFloat(d.haber || 0);
+      sumDebe += dDebe;
+      sumHaber += dHaber;
+
+      filasHtml += `
+        <tr>
+          <td>${d.codigo} - ${d.cuenta_nombre || d.nombre}</td>
+          <td class="text-end">${dParcial > 0 ? '$' + dParcial.toFixed(2) : ''}</td>
+          <td class="text-end">${dDebe > 0 ? '$' + dDebe.toFixed(2) : ''}</td>
+          <td class="text-end">${dHaber > 0 ? '$' + dHaber.toFixed(2) : ''}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+      <div class="border rounded-3 p-3 mb-4 bg-white shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom flex-wrap gap-2">
+          <div>
+            <span class="badge bg-dark fs-6 me-2">Partida N° ${p.numero_partida}</span>
+            <span class="text-muted fw-semibold"><i class="bi bi-calendar3 me-1"></i>${p.fecha}</span>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-warning btn-sm py-0 px-2" onclick="cargarPartidaParaEditar(${p.id})" title="Editar Partida N° ${p.numero_partida}">
+              <i class="bi bi-pencil-square me-1"></i> Editar
+            </button>
+            <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="eliminarPartida(${p.id}, ${p.numero_partida})" title="Eliminar Partida N° ${p.numero_partida}">
+              <i class="bi bi-trash me-1"></i> Eliminar
+            </button>
+          </div>
+        </div>
+        <p class="mb-3"><strong>Concepto:</strong> ${p.concepto}</p>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Cuenta Contable</th>
+                <th class="text-end" style="width: 20%;">Parcial</th>
+                <th class="text-end" style="width: 20%;">Debe</th>
+                <th class="text-end" style="width: 20%;">Haber</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filasHtml}
+            </tbody>
+            <tfoot class="fw-bold table-light">
+              <tr>
+                <td class="text-end">TOTAL:</td>
+                <td></td>
+                <td class="text-end text-success">$${sumDebe.toFixed(2)}</td>
+                <td class="text-end text-primary">$${sumHaber.toFixed(2)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
 }
 
 // Ejecutar Asistente de Ajuste de Inventarios
@@ -417,7 +588,7 @@ async function eliminarPartida(id, numeroPartida) {
 
 // Vaciar todas las partidas del Libro Diario
 async function vaciarLibroDiario() {
-  if (!confirm('⚠️ ¿Estás seguro de VACIAR TODO el Libro Diario?\n\nSe eliminarán todas las partidas registradas y el correlativo volverá a 1. Esta acción no se puede deshacer.')) {
+  if (!confirm('¿Estás seguro de VACIAR TODO el Libro Diario?\n\nSe eliminarán todas las partidas registradas y el correlativo volverá a 1. Esta acción no se puede deshacer.')) {
     return;
   }
 
@@ -457,4 +628,92 @@ async function restablecerDemo() {
     console.error('Error al restablecer demo:', err);
     showAlert('Error al restablecer ejercicio demo.', 'danger');
   }
+}
+
+// --------------------------------------------------------
+// ASISTENTE DE LIQUIDACIÓN DE IVA
+// --------------------------------------------------------
+async function abrirModalLiquidacionIVA() {
+  try {
+    const res = await fetch('/api/reportes/mayor');
+    const data = await res.json();
+    let credito = 0;
+    let debito = 0;
+    if (data.success && Array.isArray(data.reporte)) {
+      const cCredito = data.reporte.find(c => c.codigo.startsWith('1106') || c.nombre.toLowerCase().includes('crédito fiscal') || c.nombre.toLowerCase().includes('credito fiscal'));
+      const cDebito = data.reporte.find(c => c.codigo.startsWith('2102') || c.nombre.toLowerCase().includes('débito fiscal') || c.nombre.toLowerCase().includes('debito fiscal'));
+      if (cCredito) credito = Math.max(0, cCredito.saldo);
+      if (cDebito) debito = Math.max(0, cDebito.saldo);
+    }
+    document.getElementById('inputIvaCredito').value = credito.toFixed(2);
+    document.getElementById('inputIvaDebito').value = debito.toFixed(2);
+  } catch (err) {
+    console.error('Error al consultar saldos de IVA:', err);
+  }
+
+  const modalEl = document.getElementById('modalLiquidacionIVA');
+  if (modalEl) {
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+  }
+}
+
+function ejecutarLiquidacionIVADesdeModal(e) {
+  e.preventDefault();
+  const ivaCredito = parseFloat(document.getElementById('inputIvaCredito').value) || 0;
+  const ivaDebito = parseFloat(document.getElementById('inputIvaDebito').value) || 0;
+
+  const modalEl = document.getElementById('modalLiquidacionIVA');
+  const modalInstance = bootstrap.Modal.getInstance(modalEl);
+  if (modalInstance) modalInstance.hide();
+
+  // Limpiar las filas actuales del formulario
+  document.querySelectorAll('#filasDetalles .cuenta-select').forEach(s => { if (s.tomselect) s.tomselect.destroy(); });
+  document.getElementById('filasDetalles').innerHTML = '';
+
+  let concepto = "Liquidación de IVA del periodo";
+
+  if (ivaDebito > ivaCredito) {
+      let impuestoPorPagar = ivaDebito - ivaCredito;
+      agregarFilaPrellenada("Débito Fiscal", ivaDebito, 0);
+      agregarFilaPrellenada("Crédito Fiscal", 0, ivaCredito);
+      agregarFilaPrellenada("Pagar", 0, impuestoPorPagar); 
+      showAlert(`Liquidación generada: Impuesto por pagar de $${impuestoPorPagar.toFixed(2)}`, "info");
+  } else if (ivaCredito > ivaDebito) {
+      let remanente = ivaCredito - ivaDebito;
+      agregarFilaPrellenada("Débito Fiscal", ivaDebito, 0);
+      agregarFilaPrellenada("Remanente", remanente, 0);
+      agregarFilaPrellenada("Crédito Fiscal", 0, ivaCredito);
+      showAlert(`Liquidación generada: Remanente a favor de $${remanente.toFixed(2)}`, "info");
+  } else {
+      agregarFilaPrellenada("Débito Fiscal", ivaDebito, 0);
+      agregarFilaPrellenada("Crédito Fiscal", 0, ivaCredito);
+      showAlert("Liquidación generada: Ambos IVAs están a cero.", "info");
+  }
+
+  document.getElementById('conceptoInput').value = concepto;
+  calcularTotales(); 
+}
+
+// Función auxiliar que reutiliza tu lógica existente
+function agregarFilaPrellenada(palabraClave, debe, haber) {
+  agregarFila(); // Llama a tu función original para crear el HTML exacto
+  const filaNueva = document.getElementById(`fila_${contadorFilas}`);
+  
+  // Buscar la cuenta en tu catálogo cargado por coincidencia de nombre
+  const cuenta = catalogoCuentas.find(c => c.nombre.toLowerCase().includes(palabraClave.toLowerCase()));
+  
+  if (cuenta) {
+      const selectEl = filaNueva.querySelector('.cuenta-select');
+      if (selectEl.tomselect) {
+        selectEl.tomselect.setValue(cuenta.id);
+      } else {
+        selectEl.value = cuenta.id;
+      }
+  } else {
+      console.warn(`No se encontró cuenta automática para: ${palabraClave}. Búscala en el select.`);
+  }
+  
+  filaNueva.querySelector('.debe-input').value = debe.toFixed(2);
+  filaNueva.querySelector('.haber-input').value = haber.toFixed(2);
 }

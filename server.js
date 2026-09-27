@@ -30,9 +30,9 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Redirección por defecto a index.html para rutas no encontradas de frontend
+// Redirección por defecto a dashboard.html para el modo aplicación de escritorio
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
 // Manejador global de errores
@@ -46,9 +46,15 @@ app.use((err, req, res, next) => {
 });
 
 // Iniciar Servidor HTTP
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log('====================================================');
   console.log(`🚀 Servidor Contable ejecutándose en: http://localhost:${PORT}`);
   console.log(`📊 Sistema de Gestión Contable y Estados Financieros`);
   console.log('====================================================');
+}).on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(`ℹ️ Servidor contable ya activo en http://localhost:${PORT}`);
+  } else {
+    console.error('❌ Error al iniciar servidor:', err.message);
+  }
 });

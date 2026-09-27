@@ -4,14 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar Sesión - Sistema Contable</title>
+    <script>
+      (function(){
+        try{
+          if(localStorage.getItem('tema_contable')==='dark'){document.documentElement.setAttribute('data-theme','dark');}
+        }catch(e){}
+        window.location.href = 'dashboard.html';
+      })();
+    </script>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
     <style>
+        :root{
+            --login-bg-1:#0B231C;
+            --login-bg-2:#123B2C;
+            --login-accent:#1D8262;
+            --login-accent-dark:#12503C;
+            --login-gold:#B08D57;
+        }
+        [data-theme="dark"]{
+            --login-bg-1:#060F0C;
+            --login-bg-2:#0E2019;
+        }
         body {
-            background-color: #1b3b36;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--login-bg-1);
+            background-image: radial-gradient(circle at 15% 15%, rgba(255,255,255,.05), transparent 40%);
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             height: 100vh;
             display: flex;
             align-items: center;
@@ -22,12 +46,17 @@
         .login-container {
             width: 850px;
             max-width: 95%;
-            background: #ffffff;
+            background: var(--surface, #ffffff);
             border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
             overflow: hidden;
             display: flex;
             min-height: 480px;
+            position: relative;
+        }
+
+        .theme-toggle-login{
+            position: absolute; top: 16px; right: 16px; z-index: 5;
         }
 
         .login-form-section {
@@ -36,11 +65,20 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
+            color: var(--text, #1B2420);
+        }
+
+        .login-brand{
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--login-accent-dark);
+            display: flex; align-items: center; gap: .5rem;
+            margin-bottom: 1.1rem;
         }
 
         .login-welcome-section {
             flex: 1;
-            background: linear-gradient(135deg, #20c997, #0f5132);
+            background: linear-gradient(155deg, var(--login-bg-2), var(--login-bg-1) 120%);
             color: #ffffff;
             padding: 40px;
             display: flex;
@@ -48,30 +86,36 @@
             align-items: center;
             justify-content: center;
             text-align: center;
-            border-top-left-radius: 120px;
-            border-bottom-left-radius: 120px;
+        }
+        .login-welcome-section .mark{
+            width: 56px; height: 56px; border-radius: 16px;
+            background: rgba(255,255,255,.10);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6rem; color: var(--login-gold);
+            margin-bottom: .5rem;
         }
 
         .form-control {
-            background-color: #f8f9fa;
-            border: 1px solid #ced4da;
+            background-color: var(--surface-2, #f8f9fa);
+            border: 1px solid var(--border, #ced4da);
             padding: 12px 15px;
             border-radius: 8px;
             font-size: 14px;
         }
 
         .form-control:focus {
-            background-color: #ffffff;
-            border-color: #20c997;
-            box-shadow: 0 0 0 0.25rem rgba(32, 201, 151, 0.25);
+            background-color: var(--surface, #ffffff);
+            border-color: var(--login-accent);
+            box-shadow: 0 0 0 0.25rem rgba(29, 130, 98, 0.22);
         }
 
         .input-group-text {
-            background-color: #f8f9fa;
-            border: 1px solid #ced4da;
+            background-color: var(--surface-2, #f8f9fa);
+            border: 1px solid var(--border, #ced4da);
             border-right: none;
             border-top-left-radius: 8px;
             border-bottom-left-radius: 8px;
+            color: var(--muted, #6E7A70);
         }
 
         .input-group .form-control {
@@ -80,7 +124,7 @@
         }
 
         .btn-custom-success {
-            background-color: #20c997;
+            background-color: var(--login-accent);
             border: none;
             color: white;
             padding: 12px;
@@ -91,8 +135,13 @@
         }
 
         .btn-custom-success:hover {
-            background-color: #1aa179;
+            background-color: var(--login-accent-dark);
             color: white;
+        }
+
+        .login-container h2, .login-container h3{
+            font-weight:800;
+            letter-spacing:-.02em;
         }
 
         @media (max-width: 768px) {
@@ -109,8 +158,13 @@
 <body>
 
     <div class="login-container">
+        <button type="button" class="theme-toggle theme-toggle-login" id="btnThemeToggle" title="Cambiar tema">
+            <i class="bi bi-moon-stars" id="iconTema"></i>
+        </button>
+
         <!-- Sección Izquierda: Formulario de Inicio de Sesión -->
         <div class="login-form-section">
+            <div class="login-brand"><i class="bi bi-cash-stack"></i> Sistema Contable</div>
             <h3 class="fw-bold mb-2 text-dark">Iniciar Sesión</h3>
             <p class="text-muted small mb-3">Use su correo y contraseña para acceder</p>
 
@@ -145,7 +199,7 @@
         <!-- Sección Derecha: Panel de Bienvenida con Curva (Sin botones) -->
         <div class="login-welcome-section">
             <div class="mb-3">
-                <i class="bi bi-bank fs-1"></i>
+                <i class="bi bi-cash-stack fs-1"></i>
             </div>
             <h2 class="fw-bold mb-2">¡Bienvenido!</h2>
             <p class="small mb-0 text-light opacity-85">Ingrese sus datos personales para usar todas las funciones del sistema contable.</p>
@@ -154,5 +208,31 @@
 
     <!-- Script de autenticación -->
     <script src="js/auth.js"></script>
+    <script>
+        // Interruptor de tema claro / oscuro (solo visual)
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnTema = document.getElementById('btnThemeToggle');
+            const iconTema = document.getElementById('iconTema');
+            const actualizarIcono = () => {
+                if (!iconTema) return;
+                const oscuro = document.documentElement.getAttribute('data-theme') === 'dark';
+                iconTema.className = oscuro ? 'bi bi-sun' : 'bi bi-moon-stars';
+            };
+            actualizarIcono();
+            if (btnTema) {
+                btnTema.addEventListener('click', () => {
+                    const oscuro = document.documentElement.getAttribute('data-theme') === 'dark';
+                    if (oscuro) {
+                        document.documentElement.removeAttribute('data-theme');
+                        localStorage.setItem('tema_contable', 'light');
+                    } else {
+                        document.documentElement.setAttribute('data-theme', 'dark');
+                        localStorage.setItem('tema_contable', 'dark');
+                    }
+                    actualizarIcono();
+                });
+            }
+        });
+    </script>
 </body>
 </html>

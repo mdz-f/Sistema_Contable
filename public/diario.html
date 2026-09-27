@@ -4,10 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Libro Diario - Sistema Contable</title>
+  <script>(function(){try{if(localStorage.getItem('tema_contable')==='dark'){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();</script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
   <link href="css/styles.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -16,18 +19,31 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
   <style>
     :root{
-      --bg:#EEF2F8;
+      --bg:#F5F2EA;
       --surface:#FFFFFF;
-      --border:#E7EBF3;
-      --text:#16202C;
-      --muted:#7A8699;
-      --sidebar-1:#0B2233;
-      --sidebar-2:#0E4D48;
-      --blue-1:#3B7CF0; --blue-2:#63B3ED;
-      --green-1:#0FB88A; --green-2:#0A7F68;
-      --purple-1:#6C63F5; --purple-2:#8E7CF7;
-      --teal-1:#0E7C6B; --teal-2:#123A46;
-      --radius:16px;
+      --border:#E1DDCF;
+      --text:#1B2420;
+      --muted:#6E7A70;
+      --sidebar-1:#0B231C;
+      --sidebar-2:#123B2C;
+      --blue-1:#35657A; --blue-2:#5C93A8;
+      --green-1:#178F63; --green-2:#0C5A40;
+      --purple-1:#9C6B2E; --purple-2:#C79A55;
+      --teal-1:#14503D; --teal-2:#0A2E22;
+      --radius:14px;
+    }
+    [data-theme="dark"]{
+      --bg:#0E1613;
+      --surface:#16241F;
+      --border:#28392F;
+      --text:#E8EEE9;
+      --muted:#93A79B;
+      --sidebar-1:#060F0C;
+      --sidebar-2:#0E2019;
+      --blue-1:#5C93A8; --blue-2:#8FBFCF;
+      --green-1:#22A57C; --green-2:#147A5B;
+      --purple-1:#C79A55; --purple-2:#E0BC7C;
+      --teal-1:#1B6A50; --teal-2:#0F4433;
     }
     *{ box-sizing:border-box; }
     html,body{ margin:0; padding:0; height:100%; overflow:hidden; }
@@ -160,15 +176,15 @@
     <!-- Sidebar Estático -->
     <aside class="app-sidebar">
       <div class="sidebar-brand">
-        <span class="mark"><i class="bi bi-bank"></i></span>
+        <span class="mark"><i class="bi bi-cash-stack"></i></span>
         Sistema Contable
       </div>
 
       <ul class="sidebar-nav">
-        <li><a class="sidebar-link" href="dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+        <li><a class="sidebar-link" href="dashboard.html"><i class="bi bi-clipboard-data"></i> Dashboard</a></li>
         <li><a class="sidebar-link active" href="diario.html"><i class="bi bi-journal-plus"></i> Libro Diario</a></li>
-        <li><a class="sidebar-link" href="mayor.html"><i class="bi bi-journals"></i> Libro Mayor</a></li>
-        <li><a class="sidebar-link" href="estados.html"><i class="bi bi-file-earmark-bar-graph"></i> Estados Financieros</a></li>
+        <li><a class="sidebar-link" href="mayor.html"><i class="bi bi-book-half"></i> Libro Mayor</a></li>
+        <li><a class="sidebar-link" href="estados.html"><i class="bi bi-clipboard2-data"></i> Estados Financieros</a></li>
         <li><a class="sidebar-link" href="kardex.html"><i class="bi bi-box-seam"></i> Kardex de Inventario</a></li>
       </ul>
 
@@ -185,15 +201,15 @@
     <!-- Mobile nav -->
     <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileNav" style="background:var(--sidebar-1); color:#CBD8E3;">
       <div class="offcanvas-header">
-        <span class="sidebar-brand" style="padding:0;"><span class="mark"><i class="bi bi-bank"></i></span> Sistema Contable</span>
+        <span class="sidebar-brand" style="padding:0;"><span class="mark"><i class="bi bi-cash-stack"></i></span> Sistema Contable</span>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
       </div>
       <div class="offcanvas-body">
         <ul class="sidebar-nav">
-          <li><a class="sidebar-link" href="dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+          <li><a class="sidebar-link" href="dashboard.html"><i class="bi bi-clipboard-data"></i> Dashboard</a></li>
           <li><a class="sidebar-link active" href="diario.html"><i class="bi bi-journal-plus"></i> Libro Diario</a></li>
-          <li><a class="sidebar-link" href="mayor.html"><i class="bi bi-journals"></i> Libro Mayor</a></li>
-          <li><a class="sidebar-link" href="estados.html"><i class="bi bi-file-earmark-bar-graph"></i> Estados Financieros</a></li>
+          <li><a class="sidebar-link" href="mayor.html"><i class="bi bi-book-half"></i> Libro Mayor</a></li>
+          <li><a class="sidebar-link" href="estados.html"><i class="bi bi-clipboard2-data"></i> Estados Financieros</a></li>
           <li><a class="sidebar-link" href="kardex.html"><i class="bi bi-box-seam"></i> Kardex de Inventario</a></li>
         </ul>
       </div>
@@ -215,7 +231,8 @@
             <div id="navUserRole" class="role">Rol</div>
           </div>
           <div class="avatar" id="userAvatar">U</div>
-          <button class="btn-logout" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Salir</button>
+          <button class="theme-toggle" id="btnThemeToggle" type="button" title="Cambiar tema"><i class="bi bi-moon-stars" id="iconTema"></i></button>
+          <button class="btn-logout" onclick="cerrarAplicacion()" title="Cerrar Aplicación"><i class="bi bi-power text-danger me-1"></i> Cerrar</button>
         </div>
       </div>
 
@@ -228,8 +245,11 @@
             <p class="text-muted mb-0">Formulario con verificación obligatoria de Partida Doble ($\sum Debe = \sum Haber$)</p>
           </div>
           <div>
+            <button type="button" class="btn btn-info fw-semibold shadow-sm text-dark" id="btnLiquidarIVA">
+              <i class="bi bi-calculator me-1"></i> Liquidar IVA
+            </button>
             <button type="button" class="btn btn-warning fw-semibold shadow-sm text-dark" data-bs-toggle="modal" data-bs-target="#modalAjusteInventarios">
-              <i class="bi bi-magic me-1"></i> Asistente de Ajuste de Inventarios
+              <i class="bi bi-sliders2 me-1"></i> Asistente de Ajuste de Inventarios
             </button>
           </div>
         </div>
@@ -238,9 +258,9 @@
         <div id="alertContainer"></div>
 
         <!-- Form Container Card -->
-        <div class="card custom-card mb-5">
+        <div class="card custom-card mb-5" id="partidaFormCard">
           <div class="custom-card-header d-flex justify-content-between align-items-center">
-            <span><i class="bi bi-journal-plus me-2 text-primary"></i> Nueva Partida Contable</span>
+            <span id="tituloFormCard"><i class="bi bi-journal-plus me-2 text-primary"></i> Nueva Partida Contable</span>
             <span class="badge bg-primary fs-6" id="badgeNumeroPartida">Partida N° --</span>
           </div>
 
@@ -301,10 +321,14 @@
                   </button>
                 </div>
 
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2">
                   <div id="indicadorBalance" class="balance-badge unbalanced">
                     <i class="bi bi-exclamation-triangle-fill me-1"></i> Descuadrado (Diferencia: $0.00)
                   </div>
+
+                  <button type="button" class="btn btn-outline-secondary px-3 d-none" id="btnCancelarEdicion" onclick="cancelarEdicion()">
+                    <i class="bi bi-x-circle me-1"></i> Cancelar
+                  </button>
 
                   <button type="submit" class="btn btn-primary px-4 fw-semibold" id="btnGuardarPartida" disabled>
                     <i class="bi bi-check-circle me-1"></i> Guardar Partida
@@ -346,6 +370,12 @@
           </div>
 
           <div class="card-body p-4">
+            <div class="mb-4">
+              <div class="input-group">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-primary"></i></span>
+                <input type="text" class="form-control border-start-0 ps-0" id="inputBuscarPartida" placeholder="🔍 Buscar asiento por N° de partida, fecha, concepto o cuenta contable..." oninput="filtrarPartidasDiario()">
+              </div>
+            </div>
             <div id="historialPartidasContainer">
               <div class="text-center text-muted py-3">Cargando partidas registradas...</div>
             </div>
@@ -368,7 +398,7 @@
       <div class="modal-content shadow-lg border-0 rounded-4">
         <div class="modal-header bg-warning-subtle text-dark border-0">
           <h5 class="modal-title fw-bold" id="modalAjusteLabel">
-            <i class="bi bi-magic me-2 text-warning"></i> Asistente de Ajuste de Inventarios
+            <i class="bi bi-sliders2 me-2 text-warning"></i> Asistente de Ajuste de Inventarios
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
@@ -401,10 +431,76 @@
     </div>
   </div>
 
+  <!-- Modal Asistente de Liquidación de IVA -->
+  <div class="modal fade" id="modalLiquidacionIVA" tabindex="-1" aria-labelledby="modalIvaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow-lg border-0 rounded-4">
+        <div class="modal-header bg-primary text-white border-0">
+          <h5 class="modal-title fw-bold" id="modalIvaLabel">
+            <i class="bi bi-calculator me-2"></i> Asistente de Liquidación de IVA
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body p-4">
+          <p class="text-muted small mb-3">
+            El sistema ha obtenido los saldos actuales de IVA de la base de datos. Verifique o ajuste los montos para generar el asiento de liquidación del periodo.
+          </p>
+          <div id="modalIvaAlert"></div>
+          <form id="formLiquidacionIVA">
+            <div class="mb-3">
+              <label for="inputIvaCredito" class="form-label fw-semibold">IVA Crédito Fiscal (1104 - Deudor)</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" step="0.01" min="0" class="form-control" id="inputIvaCredito" placeholder="0.00" required>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="inputIvaDebito" class="form-label fw-semibold">IVA Débito Fiscal (2104 - Acreedor)</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" step="0.01" min="0" class="form-control" id="inputIvaDebito" placeholder="0.00" required>
+              </div>
+            </div>
+            <div class="d-grid gap-2 mt-4">
+              <button type="submit" class="btn btn-primary fw-bold" id="btnConfirmarLiquidacionIVA">
+                <i class="bi bi-check2-circle me-1"></i> Generar Liquidación de IVA
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/diario.js"></script>
   <script>
+    // Interruptor de tema claro / oscuro (solo visual, no toca datos ni sesión)
+    document.addEventListener('DOMContentLoaded', () => {
+      const btnTema = document.getElementById('btnThemeToggle');
+      const iconTema = document.getElementById('iconTema');
+      const actualizarIcono = () => {
+        if (!iconTema) return;
+        const oscuro = document.documentElement.getAttribute('data-theme') === 'dark';
+        iconTema.className = oscuro ? 'bi bi-sun' : 'bi bi-moon-stars';
+      };
+      actualizarIcono();
+      if (btnTema) {
+        btnTema.addEventListener('click', () => {
+          const oscuro = document.documentElement.getAttribute('data-theme') === 'dark';
+          if (oscuro) {
+            document.documentElement.removeAttribute('data-theme');
+            localStorage.setItem('tema_contable', 'light');
+          } else {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('tema_contable', 'dark');
+          }
+          actualizarIcono();
+        });
+      }
+    });
     // Inicializar el calendario del sidebar de forma estática
     document.addEventListener('DOMContentLoaded', () => {
       const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];

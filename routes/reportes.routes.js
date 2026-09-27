@@ -66,10 +66,133 @@ router.get('/mayor', async (req, res) => {
   }
 });
 
+// GET /api/reportes/dashboard - Resumen y estadísticas para el Panel Principal
+router.get('/dashboard', async (req, res) => {
+  try {
+    const [[{ totalPartidas }]] = await db.query(
+      `SELECT COUNT(*) AS totalPartidas FROM partidas`
+    );
+
+    const [[{ cuentasMayorizadas }]] = await db.query(
+      `SELECT COUNT(DISTINCT cuenta_id) AS cuentasMayorizadas FROM detalle_asiento`
+    );
+
+    const [mesesRows] = await db.query(
+      `SELECT 
+        MONTH(p.fecha) AS mes_num,
+        SUM(d.debe) AS total_debe,
+        SUM(d.haber) AS total_haber
+       FROM detalle_asiento d
+       INNER JOIN partidas p ON d.partida_id = p.id
+       GROUP BY MONTH(p.fecha)
+       ORDER BY mes_num ASC`
+    );
+
+    const debePorMes = Array(12).fill(0);
+    const haberPorMes = Array(12).fill(0);
+    const partidasPorMes = Array(12).fill(0);
+
+    mesesRows.forEach(r => {
+      const idx = r.mes_num - 1;
+      if (idx >= 0 && idx < 12) {
+        debePorMes[idx] = Math.round(parseFloat(r.total_debe || 0) * 100) / 100;
+        haberPorMes[idx] = Math.round(parseFloat(r.total_haber || 0) * 100) / 100;
+      }
+    });
+
+    const [partidasMesRows] = await db.query(
+      `SELECT MONTH(fecha) AS mes_num, COUNT(*) AS total
+       FROM partidas
+       GROUP BY MONTH(fecha)`
+    );
+    partidasMesRows.forEach(r => {
+      const idx = r.mes_num - 1;
+      if (idx >= 0 && idx < 12) {
+        partidasPorMes[idx] = parseInt(r.total || 0, 10);
+      }
+    });
+
+    const [[{ deudoras }]] = await db.query(
+      `SELECT COUNT(DISTINCT c.id) AS deudoras
+       FROM catalogo_cuentas c
+       INNER JOIN detalle_asiento d ON c.id = d.cuenta_id
+       WHERE c.naturaleza = 'DEUDORA'`
+    );
+    const [[{ acreedoras }]] = await db.query(
+      `SELECT COUNT(DISTINCT c.id) AS acreedoras
+       FROM catalogo_cuentas c
+       INNER JOIN detalle_asiento d ON c.id = d.cuenta_id
+       WHERE c.naturaleza = 'ACREEDORA'`
+    );
+
+    res.json({
+      success: true,
+      data: {
+        totalPartidas: parseInt(totalPartidas || 0, 10),
+        cuentasMayorizadas: parseInt(cuentasMayorizadas || 0, 10),
+        debePorMes,
+        haberPorMes,
+        partidasPorMes,
+        naturaleza: {
+          deudoras: parseInt(deudoras || 0, 10),
+          acreedoras: parseInt(acreedoras || 0, 10)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error al obtener datos del dashboard:', error);
+    res.status(500).json({ success: false, message: 'Error al obtener datos del dashboard.', error: error.message });
+  }
+});
+
+// Funciones auxiliares para clasificación estricta y flexible de cuentas contables y subcuentas
+function esCuentaVentas(codigo, nombre) {
+  const n = (nombre || '').toLowerCase();
+  if (codigo === '5101' || codigo === '5104' || codigo === '510101') return true;
+  if (codigo.startsWith('51') && !codigo.startsWith('5102') && !codigo.startsWith('5103') && codigo !== '510102') {
+    if (!n.includes('devoluc') && !n.includes('rebaja') && !n.includes('descuento')) return true;
+  }
+  return false;
+}
+
+function esCuentaDevVentas(codigo, nombre) {
+  const n = (nombre || '').toLowerCase();
+  if (codigo === '5103' || codigo === '510102') return true;
+  if (n.includes('devoluc') || n.includes('rebaja') || n.includes('descuento')) {
+    if (n.includes('venta')) return true;
+  }
+  return false;
+}
+
+function esCuentaCompras(codigo, nombre) {
+  const n = (nombre || '').toLowerCase();
+  if (codigo === '4102' || codigo === '410101') return true;
+  if (codigo.startsWith('41') && !codigo.startsWith('4103') && !codigo.startsWith('4104') && codigo !== '410102' && codigo !== '410103') {
+    if (n === 'compras' || n.includes('compra de mercad') || n.includes('compras de mercad')) return true;
+  }
+  return false;
+}
+
+function esCuentaGastosCompras(codigo, nombre) {
+  const n = (nombre || '').toLowerCase();
+  if (codigo === '4103' || codigo === '410103') return true;
+  if (n.includes('gastos sobre compra') || n.includes('flete') || n.includes('acarreos sobre compra')) return true;
+  return false;
+}
+
+function esCuentaDevCompras(codigo, nombre) {
+  const n = (nombre || '').toLowerCase();
+  if (codigo === '4104' || codigo === '410102') return true;
+  if (n.includes('devoluc') || n.includes('rebaja') || n.includes('descuento')) {
+    if (n.includes('compra')) return true;
+  }
+  return false;
+}
+
 // GET /api/reportes/estado-resultados - Estado de Resultados Dinámico (Analítico y Condensado)
 router.get('/estado-resultados', async (req, res) => {
   try {
-    // 1. Ingresos (Código 5 / Tipo 5) - Naturaleza ACREEDORA (Saldo = Haber - Debe)
+    // 1. Ingresos (Código 5 / Tipo 5)
     const [ingresosRows] = await db.query(
       `SELECT c.id, c.codigo, c.nombre, 
               COALESCE(SUM(d.debe), 0) AS total_debe, 
@@ -94,7 +217,7 @@ router.get('/estado-resultados', async (req, res) => {
       }
     });
 
-    // 2. Costos y Gastos (Código 4 / Tipo 4) - Naturaleza DEUDORA (Saldo = Debe - Haber)
+    // 2. Costos y Gastos (Código 4 / Tipo 4)
     const [gastosRows] = await db.query(
       `SELECT c.id, c.codigo, c.nombre, 
               COALESCE(SUM(d.debe), 0) AS total_debe, 
@@ -119,13 +242,7 @@ router.get('/estado-resultados', async (req, res) => {
       }
     });
 
-    totalIngresos = Math.round(totalIngresos * 100) / 100;
-    totalCostosGastos = Math.round(totalCostosGastos * 100) / 100;
-    const utilidadEjercicio = Math.round((totalIngresos - totalCostosGastos) * 100) / 100;
-
-    // ==========================================
     // 3. CÁLCULO ANALÍTICO / PORMENORIZADO (4 COLUMNAS)
-    // ==========================================
     const [movs] = await db.query(
       `SELECT c.id, c.codigo, c.nombre, c.tipo, c.naturaleza,
               d.debe, d.haber, p.numero_partida, p.concepto
@@ -162,28 +279,28 @@ router.get('/estado-resultados', async (req, res) => {
       const haber = parseFloat(m.haber);
       const esAjuste = m.concepto && m.concepto.toLowerCase().includes('ajuste');
 
-      if (m.codigo === '5101' || m.codigo === '5104' || (m.codigo.startsWith('51') && m.codigo !== '5102' && m.codigo !== '5103')) {
-        const saldo = haber - debe;
-        ventasTotales += saldo;
-        ventasDetalle.push({ cuenta: m.nombre, partida: m.numero_partida, concepto: m.concepto, saldo });
-      } else if (m.codigo === '5103' || m.nombre.toLowerCase().includes('devoluciones y rebajas sobre venta')) {
+      if (esCuentaDevVentas(m.codigo, m.nombre)) {
         const saldo = debe - haber;
         rebajasDevVentas += saldo;
         rebajasDevVentasDetalle.push({ cuenta: m.nombre, partida: m.numero_partida, concepto: m.concepto, saldo });
-      } else if (m.codigo === '4102') {
+      } else if (esCuentaVentas(m.codigo, m.nombre)) {
+        const saldo = haber - debe;
+        ventasTotales += saldo;
+        ventasDetalle.push({ cuenta: m.nombre, partida: m.numero_partida, concepto: m.concepto, saldo });
+      } else if (esCuentaDevCompras(m.codigo, m.nombre)) {
+        const saldo = haber - debe;
+        rebajasDevCompras += saldo;
+        rebajasDevComprasDetalle.push({ cuenta: m.nombre, partida: m.numero_partida, concepto: m.concepto, saldo });
+      } else if (esCuentaGastosCompras(m.codigo, m.nombre)) {
+        const saldo = debe - haber;
+        gastosCompras += saldo;
+        gastosComprasDetalle.push({ cuenta: m.nombre, partida: m.numero_partida, concepto: m.concepto, saldo });
+      } else if (esCuentaCompras(m.codigo, m.nombre)) {
         if (!esAjuste) {
           const saldo = debe - haber;
           compras += saldo;
           comprasDetalle.push({ cuenta: m.nombre, partida: m.numero_partida, concepto: m.concepto, saldo });
         }
-      } else if (m.codigo === '4103') {
-        const saldo = debe - haber;
-        gastosCompras += saldo;
-        gastosComprasDetalle.push({ cuenta: m.nombre, partida: m.numero_partida, concepto: m.concepto, saldo });
-      } else if (m.codigo === '4104') {
-        const saldo = haber - debe;
-        rebajasDevCompras += saldo;
-        rebajasDevComprasDetalle.push({ cuenta: m.nombre, partida: m.numero_partida, concepto: m.concepto, saldo });
       } else if (m.codigo === '4202' || m.codigo.startsWith('4202')) {
         const saldo = debe - haber;
         gastosVenta += saldo;
@@ -262,7 +379,6 @@ router.get('/estado-resultados', async (req, res) => {
     const comprasNetas = Math.round((comprasTotales - rebajasDevCompras) * 100) / 100;
     const mercanciaDisponible = Math.round((invInicial + comprasNetas) * 100) / 100;
     
-    // Si no hay compras ni inventario pero hay cuenta Costo de Ventas directa (4101):
     let costoVentas = Math.round((mercanciaDisponible - invFinal) * 100) / 100;
     if (costoVentas <= 0 && mercanciaDisponible === 0) {
       const [costoDirecto] = await db.query(
@@ -279,6 +395,11 @@ router.get('/estado-resultados', async (req, res) => {
     const utilidadOperacion = Math.round((utilidadBruta - totalGastosOperacion) * 100) / 100;
     const utilidadAntesImpuestos = Math.round((utilidadOperacion + otrosIngresos - otrosGastos) * 100) / 100;
     const utilidadNeta = utilidadAntesImpuestos;
+
+    // Para la vista condensada y compatibilidad general:
+    totalIngresos = Math.round((ventasNetas + otrosIngresos) * 100) / 100;
+    totalCostosGastos = Math.round((costoVentas + totalGastosOperacion + otrosGastos) * 100) / 100;
+    const utilidadEjercicio = Math.round((totalIngresos - totalCostosGastos) * 100) / 100;
 
     const analitico = {
       ventasTotales,
@@ -316,14 +437,12 @@ router.get('/estado-resultados', async (req, res) => {
 
     res.json({
       success: true,
-      // Formato condensado (compatible)
       ingresos,
       totalIngresos,
       costosGastos,
       totalCostosGastos,
       utilidadEjercicio,
       esUtilidad: utilidadEjercicio >= 0,
-      // Formato analítico pormenorizado (4 columnas)
       analitico
     });
 
@@ -336,14 +455,12 @@ router.get('/estado-resultados', async (req, res) => {
 // GET /api/reportes/balance-general - Balance General Dinámico
 router.get('/balance-general', async (req, res) => {
   try {
-    // 1. Activos (Código 1 / Tipo 1) - Deudora (Saldo = Debe - Haber)
-    // Determinar si hay asientos de ajuste en el Libro Diario
     const [ajustesCount] = await db.query(
       `SELECT COUNT(*) as total FROM partidas WHERE LOWER(concepto) LIKE '%ajuste%'`
     );
     const tieneAjustes = ajustesCount[0].total > 0;
 
-    // 1. Activos (Código 1 / Tipo 1) - Deudora (Saldo = Debe - Haber)
+    // 1. Activos (Código 1 / Tipo 1)
     const [activosRows] = await db.query(
       `SELECT c.id, c.codigo, c.nombre, 
               COALESCE(SUM(d.debe), 0) AS total_debe, 
@@ -359,8 +476,6 @@ router.get('/balance-general', async (req, res) => {
     let totalActivos = 0;
     const activos = [];
 
-    // Si estamos en modo "con_inventarios" (sin asientos de ajuste en el mayor),
-    // el saldo de inventarios en el Balance General debe reflejar el Inventario Final físico del Kardex
     let invFinalKardex = 0;
     if (!tieneAjustes) {
       const [kFinal] = await db.query(`SELECT saldo FROM kardex ORDER BY id DESC LIMIT 1`);
@@ -378,7 +493,7 @@ router.get('/balance-general', async (req, res) => {
       }
     });
 
-    // 2. Pasivos (Código 2 / Tipo 2) - Acreedora (Saldo = Haber - Debe)
+    // 2. Pasivos (Código 2 / Tipo 2)
     const [pasivosRows] = await db.query(
       `SELECT c.id, c.codigo, c.nombre, 
               COALESCE(SUM(d.debe), 0) AS total_debe, 
@@ -401,7 +516,7 @@ router.get('/balance-general', async (req, res) => {
       }
     });
 
-    // 3. Capital Contable (Código 3 / Tipo 3) - Acreedora (Saldo = Haber - Debe)
+    // 3. Capital Contable (Código 3 / Tipo 3)
     const [capitalRows] = await db.query(
       `SELECT c.id, c.codigo, c.nombre, 
               COALESCE(SUM(d.debe), 0) AS total_debe, 
@@ -424,53 +539,69 @@ router.get('/balance-general', async (req, res) => {
       }
     });
 
-    // 4. Utilidad o Pérdida del Ejercicio
-    let utilidadEjercicio = 0;
+    // 4. Utilidad o Pérdida del Ejercicio (calculada analíticamente para coincidencia exacta al centavo)
+    const [movs] = await db.query(
+      `SELECT c.id, c.codigo, c.nombre, c.tipo, c.naturaleza,
+              d.debe, d.haber, p.numero_partida, p.concepto
+       FROM catalogo_cuentas c
+       INNER JOIN detalle_asiento d ON c.id = d.cuenta_id
+       INNER JOIN partidas p ON d.partida_id = p.id`
+    );
 
-    if (tieneAjustes) {
-      const [ingresosTotales] = await db.query(
-        `SELECT COALESCE(SUM(d.haber - d.debe), 0) AS total 
-         FROM detalle_asiento d 
-         INNER JOIN catalogo_cuentas c ON d.cuenta_id = c.id 
-         WHERE c.tipo = 5 OR c.codigo LIKE '5%'`
-      );
-      const [gastosTotales] = await db.query(
-        `SELECT COALESCE(SUM(d.debe - d.haber), 0) AS total 
-         FROM detalle_asiento d 
-         INNER JOIN catalogo_cuentas c ON d.cuenta_id = c.id 
-         WHERE c.tipo = 4 OR c.codigo LIKE '4%'`
-      );
-      utilidadEjercicio = Math.round((parseFloat(ingresosTotales[0].total) - parseFloat(gastosTotales[0].total)) * 100) / 100;
-    } else {
-      // Si no hay ajustes de inventario en el diario, la utilidad es la utilidad analítica calculada
-      // Ventas Netas - Costo de Ventas (Kardex) - Gastos de Operación
-      const [ventasRows] = await db.query(
-        `SELECT COALESCE(SUM(d.haber - d.debe), 0) AS total FROM detalle_asiento d JOIN catalogo_cuentas c ON d.cuenta_id = c.id WHERE c.codigo IN ('5101', '5104')`
-      );
-      const [devVentasRows] = await db.query(
-        `SELECT COALESCE(SUM(d.debe - d.haber), 0) AS total FROM detalle_asiento d JOIN catalogo_cuentas c ON d.cuenta_id = c.id WHERE c.codigo = '5103'`
-      );
-      const [comprasRows] = await db.query(
-        `SELECT COALESCE(SUM(d.debe - d.haber), 0) AS total FROM detalle_asiento d JOIN catalogo_cuentas c ON d.cuenta_id = c.id WHERE c.codigo = '4102'`
-      );
-      const [devComprasRows] = await db.query(
-        `SELECT COALESCE(SUM(d.haber - d.debe), 0) AS total FROM detalle_asiento d JOIN catalogo_cuentas c ON d.cuenta_id = c.id WHERE c.codigo = '4104'`
-      );
-      const [kInicial] = await db.query(`SELECT COALESCE(SUM(debe), 0) as total FROM kardex WHERE tipo_movimiento = 'INICIAL'`);
-      const [kFinal] = await db.query(`SELECT saldo FROM kardex ORDER BY id DESC LIMIT 1`);
-      const [gastosOp] = await db.query(
-        `SELECT COALESCE(SUM(d.debe - d.haber), 0) AS total FROM detalle_asiento d JOIN catalogo_cuentas c ON d.cuenta_id = c.id WHERE c.codigo IN ('4201', '4202', '4203', '4204')`
-      );
+    let vTot = 0, rDevVentas = 0, comp = 0, gComp = 0, rDevComp = 0;
+    let gVentas = 0, gAdm = 0, gFin = 0, oIng = 0, oGastos = 0;
 
-      const vNetas = (parseFloat(ventasRows[0].total) || 0) - (parseFloat(devVentasRows[0].total) || 0);
-      const cNetas = (parseFloat(comprasRows[0].total) || 0) - (parseFloat(devComprasRows[0].total) || 0);
-      const iIni = (parseFloat(kInicial[0].total) || 0);
-      const iFin = kFinal.length > 0 ? (parseFloat(kFinal[0].saldo) || 0) : 0;
-      const costo = (iIni + cNetas) - iFin;
-      const uBruta = vNetas - costo;
-      const gOp = parseFloat(gastosOp[0].total) || 0;
-      utilidadEjercicio = Math.round((uBruta - gOp) * 100) / 100;
+    movs.forEach(m => {
+      const debe = parseFloat(m.debe);
+      const haber = parseFloat(m.haber);
+      const esAjuste = m.concepto && m.concepto.toLowerCase().includes('ajuste');
+
+      if (esCuentaDevVentas(m.codigo, m.nombre)) {
+        rDevVentas += (debe - haber);
+      } else if (esCuentaVentas(m.codigo, m.nombre)) {
+        vTot += (haber - debe);
+      } else if (esCuentaDevCompras(m.codigo, m.nombre)) {
+        rDevComp += (haber - debe);
+      } else if (esCuentaGastosCompras(m.codigo, m.nombre)) {
+        gComp += (debe - haber);
+      } else if (esCuentaCompras(m.codigo, m.nombre)) {
+        if (!esAjuste) comp += (debe - haber);
+      } else if (m.codigo === '4202' || m.codigo.startsWith('4202')) {
+        gVentas += (debe - haber);
+      } else if (m.codigo === '4201' || m.codigo === '4204' || m.codigo.startsWith('4201') || m.codigo.startsWith('4204')) {
+        gAdm += (debe - haber);
+      } else if (m.codigo === '4203' || m.codigo.startsWith('4203')) {
+        gFin += (debe - haber);
+      } else if (m.codigo === '5102' || m.codigo === '5201') {
+        oIng += (haber - debe);
+      } else if (m.codigo === '4205' || m.codigo.startsWith('4205')) {
+        oGastos += (debe - haber);
+      }
+    });
+
+    let iIni = 0;
+    const [kInicial] = await db.query(`SELECT COALESCE(SUM(debe), 0) as total FROM kardex WHERE tipo_movimiento = 'INICIAL'`);
+    iIni = parseFloat(kInicial[0].total) || 0;
+    if (iIni === 0) {
+      const [aj1] = await db.query(`SELECT COALESCE(SUM(d.haber), 0) as total FROM detalle_asiento d JOIN partidas p ON d.partida_id = p.id JOIN catalogo_cuentas c ON d.cuenta_id = c.id WHERE c.codigo = '1103' AND LOWER(p.concepto) LIKE '%ajuste 1%'`);
+      iIni = parseFloat(aj1[0].total) || 0;
     }
+
+    let iFin = 0;
+    const [aj2] = await db.query(`SELECT COALESCE(SUM(d.debe), 0) as total FROM detalle_asiento d JOIN partidas p ON d.partida_id = p.id JOIN catalogo_cuentas c ON d.cuenta_id = c.id WHERE c.codigo = '1103' AND LOWER(p.concepto) LIKE '%ajuste 2%'`);
+    iFin = parseFloat(aj2[0].total) || 0;
+    if (iFin === 0) {
+      const [kFinal] = await db.query(`SELECT saldo FROM kardex ORDER BY id DESC LIMIT 1`);
+      if (kFinal.length > 0) iFin = parseFloat(kFinal[0].saldo) || 0;
+    }
+
+    const vNet = vTot - rDevVentas;
+    const cNet = (comp + gComp) - rDevComp;
+    const mDisp = iIni + cNet;
+    const cVentas = mDisp - iFin;
+    const uBrut = vNet - cVentas;
+    const gOp = gVentas + gAdm + gFin;
+    const utilidadEjercicio = Math.round((uBrut - gOp + oIng - oGastos) * 100) / 100;
 
     totalActivos = Math.round(totalActivos * 100) / 100;
     totalPasivos = Math.round(totalPasivos * 100) / 100;
@@ -490,13 +621,14 @@ router.get('/balance-general', async (req, res) => {
       utilidadEjercicio,
       totalPasivoCapital,
       estaCuadrado,
+      diferencia: Math.round(Math.abs(totalActivos - totalPasivoCapital) * 100) / 100,
       tieneAjustes,
       modo: tieneAjustes ? 'sin_inventarios' : 'con_inventarios'
     });
 
   } catch (error) {
     console.error('Error en Balance General:', error);
-    res.status(500).json({ success: false, message: 'Error al generar Balance General.', error: error.message });
+    res.status(500).json({ success: false, message: 'Error al calcular Balance General.', error: error.message });
   }
 });
 

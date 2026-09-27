@@ -858,7 +858,7 @@ function exportarExcel() {
 
 // Limpiar Libro Mayor (Eliminar todas las partidas del diario)
 async function limpiarMayor() {
-    if (!confirm('⚠️ ¿Estás seguro de LIMPIAR el Libro Mayor?\n\nEsto eliminará todas las partidas registradas en el Libro Diario y dejará todos los saldos en $0.00.')) {
+    if (!confirm('¿Estás seguro de LIMPIAR el Libro Mayor?\n\nEsto eliminará todas las partidas registradas en el Libro Diario y dejará todos los saldos en $0.00.')) {
         return;
     }
 

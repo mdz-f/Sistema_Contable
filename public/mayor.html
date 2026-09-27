@@ -4,9 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Libro Mayor - Sistema Contable</title>
+  <script>(function(){try{if(localStorage.getItem('tema_contable')==='dark'){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();</script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="css/styles.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -17,18 +19,31 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style/dist/xlsx.bundle.js"></script>
   <style>
     :root{
-      --bg:#EEF2F8;
+      --bg:#F5F2EA;
       --surface:#FFFFFF;
-      --border:#E7EBF3;
-      --text:#16202C;
-      --muted:#7A8699;
-      --sidebar-1:#0B2233;
-      --sidebar-2:#0E4D48;
-      --blue-1:#3B7CF0; --blue-2:#63B3ED;
-      --green-1:#0FB88A; --green-2:#0A7F68;
-      --purple-1:#6C63F5; --purple-2:#8E7CF7;
-      --teal-1:#0E7C6B; --teal-2:#123A46;
-      --radius:16px;
+      --border:#E1DDCF;
+      --text:#1B2420;
+      --muted:#6E7A70;
+      --sidebar-1:#0B231C;
+      --sidebar-2:#123B2C;
+      --blue-1:#35657A; --blue-2:#5C93A8;
+      --green-1:#178F63; --green-2:#0C5A40;
+      --purple-1:#9C6B2E; --purple-2:#C79A55;
+      --teal-1:#14503D; --teal-2:#0A2E22;
+      --radius:14px;
+    }
+    [data-theme="dark"]{
+      --bg:#0E1613;
+      --surface:#16241F;
+      --border:#28392F;
+      --text:#E8EEE9;
+      --muted:#93A79B;
+      --sidebar-1:#060F0C;
+      --sidebar-2:#0E2019;
+      --blue-1:#5C93A8; --blue-2:#8FBFCF;
+      --green-1:#22A57C; --green-2:#147A5B;
+      --purple-1:#C79A55; --purple-2:#E0BC7C;
+      --teal-1:#1B6A50; --teal-2:#0F4433;
     }
     *{ box-sizing:border-box; }
     html,body{ margin:0; padding:0; height:100%; overflow:hidden; }
@@ -155,24 +170,25 @@
 
     /* Estilos específicos para replicar la estructura de la T en la interfaz HTML */
     .cuenta-t-card {
-      border: 1.5px solid #000 !important;
+      border: 1.5px solid var(--text) !important;
     }
     .cuenta-t-table {
       table-layout: fixed;
-      border-color: #000 !important;
+      border-color: var(--text) !important;
       margin-bottom: 0;
     }
     .cuenta-t-table th, .cuenta-t-table td {
-      border-color: #000 !important;
+      border-color: var(--text) !important;
+      color: var(--text);
     }
     .col-ref {
       width: 12%;
       text-align: center;
       font-weight: bold;
-      color: #6c757d;
+      color: var(--muted);
       font-size: 0.85rem;
       vertical-align: middle;
-      border-right: 1.5px solid #000;
+      border-right: 1.5px solid var(--text);
     }
     .col-monto {
       width: 38%;
@@ -182,14 +198,16 @@
       padding-right: 12px !important;
     }
     .debe-side {
-      border-right: 2px solid #000 !important;
+      border-right: 2px solid var(--text) !important;
     }
     .saldo-deudor {
-      background-color: #FCE4D6 !important; /* Naranja pastel */
+      background-color: #F3E6D5 !important; /* Arena cálida (naturaleza deudora) */
     }
     .saldo-acreedor {
-      background-color: #E2EFDA !important; /* Verde pastel */
+      background-color: #DCEFE4 !important; /* Verde esmeralda pastel (naturaleza acreedora) */
     }
+    [data-theme="dark"] .saldo-deudor{ background-color:#3A2E1C !important; }
+    [data-theme="dark"] .saldo-acreedor{ background-color:#123527 !important; }
   </style>
 </head>
 <body>
@@ -199,15 +217,15 @@
     <!-- Sidebar Estático -->
     <aside class="app-sidebar">
       <div class="sidebar-brand">
-        <span class="mark"><i class="bi bi-bank"></i></span>
+        <span class="mark"><i class="bi bi-cash-stack"></i></span>
         Sistema Contable
       </div>
 
       <ul class="sidebar-nav">
-        <li><a class="sidebar-link" href="dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+        <li><a class="sidebar-link" href="dashboard.html"><i class="bi bi-clipboard-data"></i> Dashboard</a></li>
         <li><a class="sidebar-link" href="diario.html"><i class="bi bi-journal-plus"></i> Libro Diario</a></li>
-        <li><a class="sidebar-link active" href="mayor.html"><i class="bi bi-journals"></i> Libro Mayor</a></li>
-        <li><a class="sidebar-link" href="estados.html"><i class="bi bi-file-earmark-bar-graph"></i> Estados Financieros</a></li>
+        <li><a class="sidebar-link active" href="mayor.html"><i class="bi bi-book-half"></i> Libro Mayor</a></li>
+        <li><a class="sidebar-link" href="estados.html"><i class="bi bi-clipboard2-data"></i> Estados Financieros</a></li>
         <li><a class="sidebar-link" href="kardex.html"><i class="bi bi-box-seam"></i> Kardex de Inventario</a></li>
       </ul>
 
@@ -224,15 +242,15 @@
     <!-- Mobile nav -->
     <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileNav" style="background:var(--sidebar-1); color:#CBD8E3;">
       <div class="offcanvas-header">
-        <span class="sidebar-brand" style="padding:0;"><span class="mark"><i class="bi bi-bank"></i></span> Sistema Contable</span>
+        <span class="sidebar-brand" style="padding:0;"><span class="mark"><i class="bi bi-cash-stack"></i></span> Sistema Contable</span>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
       </div>
       <div class="offcanvas-body">
         <ul class="sidebar-nav">
-          <li><a class="sidebar-link" href="dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+          <li><a class="sidebar-link" href="dashboard.html"><i class="bi bi-clipboard-data"></i> Dashboard</a></li>
           <li><a class="sidebar-link" href="diario.html"><i class="bi bi-journal-plus"></i> Libro Diario</a></li>
-          <li><a class="sidebar-link active" href="mayor.html"><i class="bi bi-journals"></i> Libro Mayor</a></li>
-          <li><a class="sidebar-link" href="estados.html"><i class="bi bi-file-earmark-bar-graph"></i> Estados Financieros</a></li>
+          <li><a class="sidebar-link active" href="mayor.html"><i class="bi bi-book-half"></i> Libro Mayor</a></li>
+          <li><a class="sidebar-link" href="estados.html"><i class="bi bi-clipboard2-data"></i> Estados Financieros</a></li>
           <li><a class="sidebar-link" href="kardex.html"><i class="bi bi-box-seam"></i> Kardex de Inventario</a></li>
         </ul>
       </div>
@@ -254,7 +272,8 @@
             <div id="navUserRole" class="role">Rol</div>
           </div>
           <div class="avatar" id="userAvatar">U</div>
-          <button class="btn-logout" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Salir</button>
+          <button class="theme-toggle" id="btnThemeToggle" type="button" title="Cambiar tema"><i class="bi bi-moon-stars" id="iconTema"></i></button>
+          <button class="btn-logout" onclick="cerrarAplicacion()" title="Cerrar Aplicación"><i class="bi bi-power text-danger me-1"></i> Cerrar</button>
         </div>
       </div>
 
@@ -360,6 +379,30 @@
   </div>
 
   <script>
+    // Interruptor de tema claro / oscuro (solo visual, no toca datos ni sesión)
+    document.addEventListener('DOMContentLoaded', () => {
+      const btnTema = document.getElementById('btnThemeToggle');
+      const iconTema = document.getElementById('iconTema');
+      const actualizarIcono = () => {
+        if (!iconTema) return;
+        const oscuro = document.documentElement.getAttribute('data-theme') === 'dark';
+        iconTema.className = oscuro ? 'bi bi-sun' : 'bi bi-moon-stars';
+      };
+      actualizarIcono();
+      if (btnTema) {
+        btnTema.addEventListener('click', () => {
+          const oscuro = document.documentElement.getAttribute('data-theme') === 'dark';
+          if (oscuro) {
+            document.documentElement.removeAttribute('data-theme');
+            localStorage.setItem('tema_contable', 'light');
+          } else {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('tema_contable', 'dark');
+          }
+          actualizarIcono();
+        });
+      }
+    });
     // Inicializar el calendario del sidebar de forma estática (no interactiva)
     document.addEventListener('DOMContentLoaded', () => {
       const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];

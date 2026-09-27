@@ -164,15 +164,20 @@ router.post('/', async (req, res) => {
           message: `Stock insuficiente. Tienes ${saldoCantPrevio} unidades disponibles y deseas registrar una salida de ${cant} unidades.`
         });
       }
+
+      if (cu <= 0 && (!haber_personalizado || parseFloat(haber_personalizado) <= 0)) {
+        return res.status(400).json({
+          success: false,
+          message: 'En movimientos de Venta (Salida) es obligatorio ingresar un precio/costo unitario mayor a $0.00.'
+        });
+      }
+
       cantSalida = cant;
 
       if (haber_personalizado && parseFloat(haber_personalizado) > 0) {
         haber = Math.round(parseFloat(haber_personalizado) * 100) / 100;
         cu = Math.round((haber / cantSalida) * 10000) / 10000;
       } else {
-        if (cu <= 0) {
-          cu = costoPromedioPrevio > 0 ? costoPromedioPrevio : (saldoCantPrevio > 0 ? saldoDineroPrevio / saldoCantPrevio : 0);
-        }
         haber = Math.round(cantSalida * cu * 100) / 100;
       }
     }

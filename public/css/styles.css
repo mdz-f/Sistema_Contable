@@ -1,217 +1,411 @@
 /* ==========================================================================
-   ESTILOS SISTEMA DE GESTIÓN CONTABLE Y ESTADOS FINANCIEROS
+   SISTEMA CONTABLE — TEMA VISUAL
+   Paleta: verde esmeralda + gris carbón (línea "libro contable / ledger").
+   Este archivo es puramente de presentación (colores, tipografía, espaciados).
+   No define ningún id ni cambia ninguna clase usada por la lógica (JS).
+   Incluye variantes de modo oscuro vía [data-theme="dark"] en <html>.
    ========================================================================== */
 
-:root {
-  --primary-color: #0f172a;
-  --primary-light: #1e293b;
-  --accent-color: #2563eb;
-  --accent-hover: #1d4ed8;
-  --success-color: #059669;
-  --danger-color: #dc2626;
-  --warning-color: #d97706;
-  --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  --border-radius: 12px;
+/* ---------- 1. Tokens globales (se pueden sobrescribir por página) ---------- */
+:root{
+  --bg:#F5F2EA;
+  --surface:#FFFFFF;
+  --surface-2:#FBF9F3;
+  --border:#E1DDCF;
+  --text:#1B2420;
+  --muted:#6E7A70;
+
+  --sidebar-1:#0B231C;
+  --sidebar-2:#123B2C;
+
+  --emerald-900:#0A2E24;
+  --emerald-700:#12503C;
+  --emerald-600:#17684F;
+  --emerald-500:#1D8262;
+  --emerald-400:#2F9C77;
+
+  --gold-600:#96652E;
+  --gold-500:#B08D57;
+  --gold-400:#C79A55;
+
+  --danger-600:#A6423A;
+  --danger-500:#B3423A;
+  --warning-600:#96701E;
+  --warning-500:#B98A2E;
+  --info-600:#2E5F78;
+  --info-500:#3E6E8E;
+
+  --radius:14px;
+  --radius-sm:9px;
+  --shadow-card:0 1px 2px rgba(20,30,25,.05), 0 10px 26px -14px rgba(20,30,25,.16);
+
+  /* Compatibilidad con los nombres de variable ya usados en cada página */
+  --blue-1:#35657A;   --blue-2:#5C93A8;
+  --green-1:#178F63;  --green-2:#0C5A40;
+  --purple-1:#9C6B2E; --purple-2:#C79A55;
+  --teal-1:#14503D;   --teal-2:#0A2E22;
 }
 
-body {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: #f8fafc;
-  color: #334155;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+[data-theme="dark"]{
+  --bg:#0E1613;
+  --surface:#16241F;
+  --surface-2:#1C2C26;
+  --border:#28392F;
+  --text:#E8EEE9;
+  --muted:#93A79B;
+
+  --sidebar-1:#060F0C;
+  --sidebar-2:#0E2019;
+
+  --emerald-900:#04120D;
+  --emerald-700:#0E3C2E;
+  --emerald-600:#178F63;
+  --emerald-500:#22A57C;
+  --emerald-400:#3DBE93;
+
+  --gold-600:#8A6C3B;
+  --gold-500:#C79A55;
+  --gold-400:#E0BC7C;
+
+  --danger-600:#C77168;
+  --danger-500:#D98077;
+  --warning-600:#D2A94E;
+  --warning-500:#E0B44B;
+  --info-600:#5E93B3;
+  --info-500:#7BAECB;
+
+  --shadow-card:0 1px 2px rgba(0,0,0,.35), 0 12px 30px -14px rgba(0,0,0,.6);
+
+  --blue-1:#5C93A8;   --blue-2:#8FBFCF;
+  --green-1:#22A57C;  --green-2:#147A5B;
+  --purple-1:#C79A55; --purple-2:#E0BC7C;
+  --teal-1:#1B6A50;   --teal-2:#0F4433;
 }
 
-/* Base de navegación */
-.navbar-custom {
-  background: var(--primary-color);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+/* ---------- 2. Tipografía ---------- */
+body{
+  background:var(--bg);
+  color:var(--text);
+}
+.sidebar-brand,
+.topbar-title h1,
+h1, h2.report-title, .report-title,
+.login-brand{
+  font-family:'Inter', system-ui, sans-serif;
+  font-weight:800;
+  letter-spacing:-.02em;
 }
 
-.navbar-brand {
-  font-weight: 700;
-  letter-spacing: -0.5px;
+/* ---------- 3. Overrides globales de Bootstrap (colores del tema) ---------- */
+:root{
+  --bs-body-bg:var(--bg);
+  --bs-body-color:var(--text);
+  --bs-emphasis-color:var(--text);
+  --bs-secondary-color:var(--muted);
+  --bs-border-color:var(--border);
+  --bs-border-color-translucent:var(--border);
+  --bs-tertiary-bg:var(--surface-2);
+
+  --bs-primary:var(--emerald-600);
+  --bs-primary-rgb:23,104,79;
+  --bs-primary-text-emphasis:var(--emerald-900);
+  --bs-primary-bg-subtle:#E3EFE8;
+  --bs-primary-border-subtle:#BBD9CB;
+
+  --bs-success:#1E9D6C;
+  --bs-success-rgb:30,157,108;
+  --bs-success-text-emphasis:#0E4B34;
+  --bs-success-bg-subtle:#E1F3E9;
+  --bs-success-border-subtle:#B6DFC9;
+
+  --bs-info:var(--info-500);
+  --bs-info-rgb:62,110,142;
+  --bs-info-text-emphasis:#20404F;
+  --bs-info-bg-subtle:#E4EEF3;
+  --bs-info-border-subtle:#BBD3DF;
+
+  --bs-warning:var(--warning-500);
+  --bs-warning-rgb:185,138,46;
+  --bs-warning-text-emphasis:#5C4310;
+  --bs-warning-bg-subtle:#FBF0DA;
+  --bs-warning-border-subtle:#EAD3A0;
+
+  --bs-danger:var(--danger-500);
+  --bs-danger-rgb:179,66,58;
+  --bs-danger-text-emphasis:#5C201B;
+  --bs-danger-bg-subtle:#FBE7E5;
+  --bs-danger-border-subtle:#E9B9B3;
+
+  --bs-secondary:#5C6A63;
+  --bs-secondary-rgb:92,106,99;
+  --bs-secondary-bg-subtle:#E9E7DE;
+  --bs-secondary-border-subtle:#D3D0C4;
+  --bs-secondary-text-emphasis:#33403A;
+
+  --bs-light:#F1EFE7;
+  --bs-light-rgb:241,239,231;
+  --bs-dark:#1B2420;
+  --bs-dark-rgb:27,36,32;
+
+  --bs-link-color:var(--emerald-600);
+  --bs-link-hover-color:var(--emerald-700);
+}
+
+[data-theme="dark"]{
+  --bs-primary-bg-subtle:#123227;
+  --bs-primary-border-subtle:#1E4A38;
+  --bs-primary-text-emphasis:#8FD6B7;
+
+  --bs-success-bg-subtle:#123527;
+  --bs-success-border-subtle:#1E5039;
+  --bs-success-text-emphasis:#8CDBB4;
+
+  --bs-info-bg-subtle:#16262E;
+  --bs-info-border-subtle:#25404D;
+  --bs-info-text-emphasis:#A9CBDD;
+
+  --bs-warning-bg-subtle:#2E2410;
+  --bs-warning-border-subtle:#4A3A18;
+  --bs-warning-text-emphasis:#EAC97C;
+
+  --bs-danger-bg-subtle:#301612;
+  --bs-danger-border-subtle:#4C241E;
+  --bs-danger-text-emphasis:#E7A69E;
+
+  --bs-secondary-bg-subtle:#1E2A24;
+  --bs-secondary-border-subtle:#2E3D35;
+  --bs-secondary-text-emphasis:#C6D1CA;
+
+  --bs-light:#1C2C26;
+  --bs-dark:#0E1613;
+}
+
+/* Botones sólidos (Bootstrap los compila con valores fijos, así que se
+   redefinen explícitamente para que sigan la paleta del tema) */
+.btn-primary{
+  --bs-btn-bg:var(--emerald-600); --bs-btn-border-color:var(--emerald-600);
+  --bs-btn-hover-bg:var(--emerald-700); --bs-btn-hover-border-color:var(--emerald-700);
+  --bs-btn-active-bg:var(--emerald-900); --bs-btn-active-border-color:var(--emerald-900);
+  --bs-btn-disabled-bg:var(--emerald-600); --bs-btn-disabled-border-color:var(--emerald-600);
+}
+.btn-outline-primary{
+  --bs-btn-color:var(--emerald-600); --bs-btn-border-color:var(--emerald-600);
+  --bs-btn-hover-bg:var(--emerald-600); --bs-btn-hover-border-color:var(--emerald-600);
+  --bs-btn-active-bg:var(--emerald-700); --bs-btn-active-border-color:var(--emerald-700);
+}
+.btn-success{
+  --bs-btn-bg:#1E9D6C; --bs-btn-border-color:#1E9D6C;
+  --bs-btn-hover-bg:#167D56; --bs-btn-hover-border-color:#167D56;
+  --bs-btn-active-bg:#0E4B34; --bs-btn-active-border-color:#0E4B34;
+}
+.btn-outline-success{
+  --bs-btn-color:#1E9D6C; --bs-btn-border-color:#1E9D6C;
+  --bs-btn-hover-bg:#1E9D6C; --bs-btn-hover-border-color:#1E9D6C;
+}
+.btn-info{
+  --bs-btn-bg:var(--info-500); --bs-btn-border-color:var(--info-500); --bs-btn-color:#fff;
+  --bs-btn-hover-bg:var(--info-600); --bs-btn-hover-border-color:var(--info-600); --bs-btn-hover-color:#fff;
+}
+.btn-warning{
+  --bs-btn-bg:var(--warning-500); --bs-btn-border-color:var(--warning-500); --bs-btn-color:#2A1F08;
+  --bs-btn-hover-bg:var(--warning-600); --bs-btn-hover-border-color:var(--warning-600); --bs-btn-hover-color:#2A1F08;
+}
+.btn-danger{
+  --bs-btn-bg:var(--danger-500); --bs-btn-border-color:var(--danger-500);
+  --bs-btn-hover-bg:var(--danger-600); --bs-btn-hover-border-color:var(--danger-600);
+}
+.btn-outline-danger{
+  --bs-btn-color:var(--danger-500); --bs-btn-border-color:var(--danger-500);
+  --bs-btn-hover-bg:var(--danger-500); --bs-btn-hover-border-color:var(--danger-500);
+}
+.btn-outline-secondary{
+  --bs-btn-color:var(--muted); --bs-btn-border-color:var(--border);
+  --bs-btn-hover-bg:var(--muted); --bs-btn-hover-border-color:var(--muted);
+}
+.btn-outline-warning{
+  --bs-btn-color:var(--warning-600); --bs-btn-border-color:var(--warning-500);
+  --bs-btn-hover-bg:var(--warning-500); --bs-btn-hover-border-color:var(--warning-500); --bs-btn-hover-color:#2A1F08;
+}
+
+/* Foco de formularios acorde al tema */
+.form-control:focus, .form-select:focus{
+  border-color:var(--emerald-500);
+  box-shadow:0 0 0 .25rem rgba(23,104,79,.18);
+}
+[data-theme="dark"] .form-control, [data-theme="dark"] .form-select{
+  background-color:var(--surface-2); color:var(--text); border-color:var(--border);
+}
+[data-theme="dark"] .form-control:focus, [data-theme="dark"] .form-select:focus{
+  background-color:var(--surface-2); color:var(--text);
+  box-shadow:0 0 0 .25rem rgba(34,165,124,.25);
+}
+[data-theme="dark"] .form-control::placeholder{ color:var(--muted); }
+[data-theme="dark"] .input-group-text{ background-color:var(--surface-2); color:var(--muted); border-color:var(--border); }
+
+/* Nav pills (usadas en Estados Financieros) */
+.nav-pills{ --bs-nav-pills-link-active-bg:var(--emerald-600); }
+
+/* Tablas: que respeten el tema en modo oscuro */
+[data-theme="dark"] .table{ --bs-table-color:var(--text); --bs-table-bg:transparent; }
+[data-theme="dark"] .table-light, [data-theme="dark"] thead.table-light{
+  --bs-table-bg:var(--surface-2); --bs-table-color:var(--text); --bs-table-border-color:var(--border);
+}
+[data-theme="dark"] .table-dark{ --bs-table-bg:var(--sidebar-1); --bs-table-color:#E8EEE9; }
+[data-theme="dark"] .table-bordered{ border-color:var(--border); }
+[data-theme="dark"] .table > :not(caption) > * > *{ border-bottom-color:var(--border); }
+[data-theme="dark"] .bg-light{ background-color:var(--surface-2) !important; color:var(--text); }
+[data-theme="dark"] .bg-white{ background-color:var(--surface) !important; color:var(--text); }
+[data-theme="dark"] .border{ border-color:var(--border) !important; }
+[data-theme="dark"] .border-top{ border-top-color:var(--border) !important; }
+[data-theme="dark"] .border-bottom{ border-bottom-color:var(--border) !important; }
+[data-theme="dark"] .text-dark{ color:var(--text) !important; }
+[data-theme="dark"] .text-muted{ color:var(--muted) !important; }
+[data-theme="dark"] .modal-content{ background-color:var(--surface); color:var(--text); }
+[data-theme="dark"] .offcanvas{ background-color:var(--sidebar-1); }
+[data-theme="dark"] .dropdown-menu{ background-color:var(--surface); border-color:var(--border); }
+[data-theme="dark"] .card{ background-color:var(--surface); color:var(--text); border-color:var(--border); }
+[data-theme="dark"] .shadow-sm{ box-shadow:0 2px 10px rgba(0,0,0,.35) !important; }
+
+/* ---------- 4. Botón de cambio de tema (claro / oscuro) ---------- */
+.theme-toggle{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:38px; height:38px; border-radius:50%;
+  border:1px solid var(--border); background:var(--surface); color:var(--text);
+  font-size:1rem; cursor:pointer; transition:background .2s ease, color .2s ease;
+}
+.theme-toggle:hover{ background:var(--surface-2); }
+
+/* ==========================================================================
+   ESTRUCTURA COMÚN DE LA APP (sidebar / topbar / kpis / tarjetas)
+   Usa las variables de arriba, definidas o heredadas en cada página.
+   ========================================================================== */
+.app-shell{ display:flex; }
+a{ text-decoration:none; color:inherit; }
+
+.app-sidebar{
+  background:linear-gradient(200deg, var(--sidebar-1), var(--sidebar-2) 130%);
+  color:#CBD8CE;
+  border-radius:0 22px 22px 0;
+}
+.sidebar-brand{ color:#fff; }
+.sidebar-brand .mark{
+  background:rgba(255,255,255,.10);
+  color:#4FD8A6;
+}
+.sidebar-link{ color:#B7C6BC; }
+.sidebar-link:hover{ background:rgba(255,255,255,.06); color:#fff; }
+.sidebar-link.active{
+  background:rgba(255,255,255,.14); color:#fff;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+}
+.sidebar-period{ background:rgba(255,255,255,.06); }
+.sidebar-period .label{ color:#8FA79B; }
+.period-cell{ color:#B7C6BC; background:rgba(255,255,255,.05); }
+.period-cell.is-now{ background:#1FA679; color:#04241C; }
+.sidebar-foot{ color:#5E7468; }
+
+.avatar{ background:linear-gradient(135deg, var(--blue-1), var(--purple-1)); }
+.btn-logout{ border:1px solid var(--border); background:var(--surface); color:var(--text); }
+.btn-logout:hover{ background:var(--surface-2); }
+.mobile-toggle{ border:1px solid var(--border); background:var(--surface); color:var(--text); }
+
+.card-panel{ background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow-card); }
+.custom-card{ background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow-card); }
+.custom-card-header{ background:var(--surface-2); border-bottom:1px solid var(--border); color:var(--text); }
+
+.kpi-1{ background:linear-gradient(135deg, var(--blue-1), var(--blue-2)); }
+.kpi-2{ background:linear-gradient(135deg, var(--green-1), var(--green-2)); }
+.kpi-3{ background:linear-gradient(135deg, var(--purple-1), var(--purple-2)); }
+.kpi-4{ background:linear-gradient(135deg, var(--teal-1), var(--teal-2)); }
+
+.quick-go{ background:var(--surface-2); color:var(--text); }
+.quick-go:hover{ background:var(--border); }
+
+/* ==========================================================================
+   COMPONENTES CONTABLES ESPECÍFICOS
+   ========================================================================== */
+
+/* Indicador de Partida Doble (Libro Diario) */
+.balance-badge.balanced{
+  background-color:#E1F3E9; color:#0E4B34; border:1px solid #A9DABF;
+}
+.balance-badge.unbalanced{
+  background-color:#FBE7E5; color:#7A2A23; border:1px solid #E9B9B3;
+}
+[data-theme="dark"] .balance-badge.balanced{ background-color:#123527; color:#8CDBB4; border-color:#1E5039; }
+[data-theme="dark"] .balance-badge.unbalanced{ background-color:#301612; color:#E7A69E; border-color:#4C241E; }
+
+/* Cuentas en T (Libro Mayor) */
+.t-account-card{ border:1.5px solid var(--text); background:var(--surface); }
+.t-account-header{ background:var(--sidebar-1); color:#fff; }
+.t-account-table th{ background:var(--surface-2); border-bottom:2px solid var(--text); color:var(--text); }
+.t-account-footer{ background:var(--surface-2); border-top:2px solid var(--text); color:var(--text); }
+[data-theme="dark"] .t-account-card{ border-color:var(--border); }
+
+/* Reportes / Estados Financieros */
+.financial-report-card{ background:var(--surface); box-shadow:var(--shadow-card); color:var(--text); }
+.report-header{ border-bottom:2px solid var(--emerald-600); }
+.report-title{ color:var(--sidebar-1); }
+[data-theme="dark"] .report-title{ color:#fff; }
+.section-subtitle{ color:var(--text); background:var(--surface-2); }
+.row-total{ font-weight:700; background-color:var(--surface-2); border-top:2px solid var(--text); border-bottom:2px double var(--text); }
+
+/* Botón Acceso Rápido "Abrir" con compatibilidad total de tema claro/oscuro */
+.quick-go {
+  background: var(--surface-2);
+  color: var(--text) !important;
+  border: 1px solid var(--border);
+}
+.quick-go:hover {
+  background: var(--border);
+  color: var(--text) !important;
+}
+
+/* TomSelect - Selector Buscable de Cuentas Contables */
+.ts-wrapper .ts-control {
+  border-radius: 8px !important;
+  border: 1px solid var(--border) !important;
+  background-color: var(--surface) !important;
+  color: var(--text) !important;
+  font-size: 0.9rem !important;
+  padding: 0.45rem 0.75rem !important;
+  box-shadow: none !important;
+}
+.ts-wrapper .ts-control input {
+  color: var(--text) !important;
+}
+.ts-wrapper .ts-dropdown {
+  border-radius: 10px !important;
+  background-color: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-card) !important;
+  z-index: 1050 !important;
+}
+.ts-wrapper .ts-dropdown .option {
+  padding: 0.5rem 0.75rem !important;
+  color: var(--text) !important;
+  font-size: 0.88rem !important;
+}
+.ts-wrapper .ts-dropdown .option.active,
+.ts-wrapper .ts-dropdown .option:hover {
+  background-color: var(--emerald-600) !important;
   color: #ffffff !important;
 }
-
-.nav-link {
-  font-weight: 500;
-  color: #94a3b8 !important;
-  transition: all 0.2s ease;
+[data-theme="dark"] .ts-wrapper .ts-control {
+  background-color: var(--surface-2) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
 }
-
-.nav-link:hover, .nav-link.active {
-  color: #ffffff !important;
-}
-
-/* Pantalla de Login */
-.login-body {
-  background: var(--bg-gradient);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-}
-
-.login-card {
-  border: none;
-  border-radius: 16px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-  background: #ffffff;
-  overflow: hidden;
-}
-
-.login-header {
-  background: var(--primary-color);
-  color: #ffffff;
-  padding: 2.5rem 2rem 1.5rem;
-  text-align: center;
-}
-
-/* Tarjetas y Contenedores */
-.custom-card {
-  border: 1px solid #e2e8f0;
-  border-radius: var(--border-radius);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  background: #ffffff;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.custom-card-header {
-  background: #f1f5f9;
-  border-bottom: 1px solid #e2e8f0;
-  font-weight: 600;
-  color: var(--primary-color);
-  border-top-left-radius: var(--border-radius);
-  border-top-right-radius: var(--border-radius);
-  padding: 1rem 1.25rem;
-}
-
-/* Badges de Estado de Partida Doble */
-.balance-badge {
-  font-size: 0.95rem;
-  padding: 0.6rem 1.2rem;
-  border-radius: 30px;
-  font-weight: 600;
-}
-
-.balance-badge.balanced {
-  background-color: #dcfce7;
-  color: #166534;
-  border: 1px solid #86efac;
-}
-
-.balance-badge.unbalanced {
-  background-color: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fca5a5;
-}
-
-/* Tabla de Cuentas T (Libro Mayor) */
-.t-account-card {
-  border: 2px solid #cbd5e1;
-  border-radius: 8px;
-  background: #ffffff;
-  margin-bottom: 1.5rem;
-}
-
-.t-account-header {
-  background: #1e293b;
-  color: #ffffff;
-  padding: 0.6rem 1rem;
-  font-weight: 700;
-  text-align: center;
-}
-
-.t-account-header .badge-naturaleza {
-  font-size: 0.75rem;
-  vertical-align: middle;
-  margin-left: 8px;
-}
-
-.t-account-table {
-  width: 100%;
-  margin-bottom: 0;
-  border-collapse: collapse;
-}
-
-.t-account-table th {
-  background: #f8fafc;
-  text-align: center;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  border-bottom: 2px solid #cbd5e1;
-  padding: 0.5rem;
-}
-
-.t-account-table td {
-  padding: 0.5rem;
-  font-size: 0.9rem;
-  vertical-align: top;
-}
-
-.t-account-footer {
-  background: #f1f5f9;
-  font-weight: 700;
-  border-top: 2px solid #cbd5e1;
-  padding: 0.6rem 1rem;
-}
-
-/* Reportes Financieros */
-.financial-report-card {
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: var(--card-shadow);
-  padding: 2.5rem;
-}
-
-.report-header {
-  text-align: center;
-  border-bottom: 2px solid #0f172a;
-  padding-bottom: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.report-title {
-  font-weight: 800;
-  color: var(--primary-color);
-  letter-spacing: -0.5px;
-}
-
-.section-subtitle {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #334155;
-  background: #e2e8f0;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  margin-top: 1.25rem;
-  margin-bottom: 0.75rem;
-}
-
-.financial-table td, .financial-table th {
-  padding: 0.6rem 1rem;
-}
-
-.row-total {
-  font-weight: 700;
-  background-color: #f1f5f9;
-  border-top: 2px solid #334155;
-  border-bottom: 2px double #334155;
+[data-theme="dark"] .ts-wrapper .ts-dropdown {
+  background-color: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
 }
 
 /* Modos de Impresión */
-@media print {
-  .no-print, .navbar, footer, .btn {
-    display: none !important;
-  }
-  body {
-    background: #ffffff !important;
-  }
-  .financial-report-card {
-    box-shadow: none !important;
-    padding: 0 !important;
-  }
+@media print{
+  .no-print, .navbar, footer, .btn{ display:none !important; }
+  body{ background:#ffffff !important; }
+  .financial-report-card{ box-shadow:none !important; padding:0 !important; }
 }
