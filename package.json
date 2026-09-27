@@ -12,6 +12,8 @@
     "init-db": "node database/init-db.js",
     "seed": "node database/seed-ciclo-completo.js"
   },
+  "author": "Sistema Contable",
+  "license": "ISC",
   "build": {
     "appId": "com.sistemacontable.app",
     "productName": "Sistema Contable",
@@ -22,10 +24,12 @@
     "win": {
       "target": [
         "portable",
-        "msi",
         "nsis"
       ],
       "icon": "media/logoSistemaWeb.ico"
+    },
+    "msi": {
+      "warningsAsErrors": false
     },
     "files": [
       "**/*",
