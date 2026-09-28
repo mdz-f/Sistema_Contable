@@ -14,6 +14,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   await consultarModoInventario();
   await cargarEstadoResultados();
   await cargarBalanceGeneral();
+
+  const btnLiquidarIVA = document.getElementById('btnLiquidarIVAEstados');
+  if (btnLiquidarIVA) {
+    btnLiquidarIVA.addEventListener('click', async () => {
+      if (!confirm('¿Deseas registrar automáticamente el Asiento de Liquidación de IVA del periodo en el Libro Diario?')) return;
+      try {
+        const res = await fetch('/api/partidas/liquidar-iva', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(data.message);
+          await cargarEstadoResultados();
+          await cargarBalanceGeneral();
+        } else {
+          alert(data.message || 'Atención: No se pudo liquidar el IVA.');
+        }
+      } catch (err) {
+        console.error('Error al liquidar IVA:', err);
+        alert('Error de conexión al procesar la liquidación de IVA.');
+      }
+    });
+  }
 });
 
 // Consultar modo de inventario (Con Inventarios vs Sin Inventarios)

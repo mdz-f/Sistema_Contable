@@ -639,14 +639,17 @@ async function abrirModalLiquidacionIVA() {
     const data = await res.json();
     let credito = 0;
     let debito = 0;
-    if (data.success && Array.isArray(data.reporte)) {
-      const cCredito = data.reporte.find(c => c.codigo.startsWith('1106') || c.nombre.toLowerCase().includes('crédito fiscal') || c.nombre.toLowerCase().includes('credito fiscal'));
-      const cDebito = data.reporte.find(c => c.codigo.startsWith('2102') || c.nombre.toLowerCase().includes('débito fiscal') || c.nombre.toLowerCase().includes('debito fiscal'));
-      if (cCredito) credito = Math.max(0, cCredito.saldo);
-      if (cDebito) debito = Math.max(0, cDebito.saldo);
+    const lista = data.libroMayor || data.reporte || [];
+    if (data.success && Array.isArray(lista)) {
+      const cCredito = lista.find(c => c.codigo.startsWith('1104') || c.nombre.toLowerCase().includes('crédito fiscal') || c.nombre.toLowerCase().includes('credito fiscal'));
+      const cDebito = lista.find(c => c.codigo.startsWith('2104') || c.nombre.toLowerCase().includes('débito fiscal') || c.nombre.toLowerCase().includes('debito fiscal'));
+      if (cCredito) credito = Math.max(0, parseFloat(cCredito.saldo || cCredito.total_debe || 0));
+      if (cDebito) debito = Math.max(0, parseFloat(cDebito.saldo || cDebito.total_haber || 0));
     }
-    document.getElementById('inputIvaCredito').value = credito.toFixed(2);
-    document.getElementById('inputIvaDebito').value = debito.toFixed(2);
+    const inputC = document.getElementById('inputIvaCredito');
+    const inputD = document.getElementById('inputIvaDebito');
+    if (inputC) inputC.value = credito.toFixed(2);
+    if (inputD) inputD.value = debito.toFixed(2);
   } catch (err) {
     console.error('Error al consultar saldos de IVA:', err);
   }
@@ -658,41 +661,34 @@ async function abrirModalLiquidacionIVA() {
   }
 }
 
-function ejecutarLiquidacionIVADesdeModal(e) {
+async function ejecutarLiquidacionIVADesdeModal(e) {
   e.preventDefault();
-  const ivaCredito = parseFloat(document.getElementById('inputIvaCredito').value) || 0;
-  const ivaDebito = parseFloat(document.getElementById('inputIvaDebito').value) || 0;
+  const fecha = document.getElementById('fechaInput')?.value || new Date().toISOString().split('T')[0];
 
   const modalEl = document.getElementById('modalLiquidacionIVA');
   const modalInstance = bootstrap.Modal.getInstance(modalEl);
-  if (modalInstance) modalInstance.hide();
 
-  // Limpiar las filas actuales del formulario
-  document.querySelectorAll('#filasDetalles .cuenta-select').forEach(s => { if (s.tomselect) s.tomselect.destroy(); });
-  document.getElementById('filasDetalles').innerHTML = '';
+  try {
+    const res = await fetch('/api/partidas/liquidar-iva', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fecha })
+    });
+    const data = await res.json();
 
-  let concepto = "Liquidación de IVA del periodo";
+    if (modalInstance) modalInstance.hide();
 
-  if (ivaDebito > ivaCredito) {
-      let impuestoPorPagar = ivaDebito - ivaCredito;
-      agregarFilaPrellenada("Débito Fiscal", ivaDebito, 0);
-      agregarFilaPrellenada("Crédito Fiscal", 0, ivaCredito);
-      agregarFilaPrellenada("Pagar", 0, impuestoPorPagar); 
-      showAlert(`Liquidación generada: Impuesto por pagar de $${impuestoPorPagar.toFixed(2)}`, "info");
-  } else if (ivaCredito > ivaDebito) {
-      let remanente = ivaCredito - ivaDebito;
-      agregarFilaPrellenada("Débito Fiscal", ivaDebito, 0);
-      agregarFilaPrellenada("Remanente", remanente, 0);
-      agregarFilaPrellenada("Crédito Fiscal", 0, ivaCredito);
-      showAlert(`Liquidación generada: Remanente a favor de $${remanente.toFixed(2)}`, "info");
-  } else {
-      agregarFilaPrellenada("Débito Fiscal", ivaDebito, 0);
-      agregarFilaPrellenada("Crédito Fiscal", 0, ivaCredito);
-      showAlert("Liquidación generada: Ambos IVAs están a cero.", "info");
+    if (data.success) {
+      showAlert(data.message, 'success');
+      await cargarHistorialPartidas();
+      await cargarSiguienteNumero();
+    } else {
+      showAlert(data.message || 'Error al liquidar IVA.', 'warning');
+    }
+  } catch (err) {
+    console.error('Error al procesar liquidación de IVA:', err);
+    showAlert('Error de conexión al procesar la liquidación de IVA.', 'danger');
   }
-
-  document.getElementById('conceptoInput').value = concepto;
-  calcularTotales(); 
 }
 
 // Función auxiliar que reutiliza tu lógica existente

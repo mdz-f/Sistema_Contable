@@ -265,6 +265,147 @@ router.post('/ajuste-inventarios', async (req, res) => {
   }
 });
 
+// POST /api/partidas/liquidar-iva - Generar automáticamente la partida de Liquidación de IVA del periodo
+router.post('/liquidar-iva', async (req, res) => {
+  const connection = await db.getConnection();
+  try {
+    const { fecha } = req.body;
+    const fechaLiquidacion = fecha || new Date().toISOString().split('T')[0];
+
+    // Obtener IDs de las cuentas necesarias:
+    // 1104: IVA - Crédito Fiscal
+    // 1105: Remanente de Crédito Fiscal (IVA a Favor)
+    // 2104: IVA - Débito Fiscal
+    // 2105: IVA por Pagar
+    const [cuentas] = await connection.query(
+      `SELECT id, codigo FROM catalogo_cuentas WHERE codigo IN ('1104', '1105', '2104', '2105')`
+    );
+    const cuentaMap = {};
+    cuentas.forEach(c => { cuentaMap[c.codigo] = c.id; });
+
+    if (!cuentaMap['1104'] || !cuentaMap['2104']) {
+      return res.status(400).json({
+        success: false, 
+        message: 'Faltan las cuentas de IVA (1104 Crédito Fiscal o 2104 Débito Fiscal) en el catálogo.'
+      });
+    }
+
+    // Calcular saldos acumulados actuales de Crédito Fiscal (1104) y Débito Fiscal (2104)
+    const [creditoRows] = await connection.query(
+      `SELECT COALESCE(SUM(d.debe - d.haber), 0) AS saldo
+       FROM detalle_asiento d
+       INNER JOIN catalogo_cuentas c ON d.cuenta_id = c.id
+       WHERE c.codigo = '1104' OR c.codigo LIKE '1104%'`
+    );
+    const ivaCredito = Math.round(Math.max(0, parseFloat(creditoRows[0].saldo)) * 100) / 100;
+
+    const [debitoRows] = await connection.query(
+      `SELECT COALESCE(SUM(d.haber - d.debe), 0) AS saldo
+       FROM detalle_asiento d
+       INNER JOIN catalogo_cuentas c ON d.cuenta_id = c.id
+       WHERE c.codigo = '2104' OR c.codigo LIKE '2104%'`
+    );
+    const ivaDebito = Math.round(Math.max(0, parseFloat(debitoRows[0].saldo)) * 100) / 100;
+
+    if (ivaCredito === 0 && ivaDebito === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tanto el IVA Crédito Fiscal como el Débito Fiscal están en $0.00. No hay saldos de IVA para liquidar.'
+      });
+    }
+
+    await connection.beginTransaction();
+
+    const [maxRow] = await connection.query(`SELECT COALESCE(MAX(numero_partida), 0) AS max_num FROM partidas`);
+    const numPartida = maxRow[0].max_num + 1;
+
+    let concepto = '';
+    const idCredito = cuentaMap['1104'];
+    const idDebito = cuentaMap['2104'];
+    const idRemanente = cuentaMap['1105'] || cuentaMap['1104'];
+    const idPagar = cuentaMap['2105'] || cuentaMap['2104'];
+
+    if (ivaDebito > ivaCredito) {
+      const impuestoPorPagar = Math.round((ivaDebito - ivaCredito) * 100) / 100;
+      concepto = `Liquidación de IVA del periodo: Cancelación de Crédito Fiscal ($${ivaCredito.toFixed(2)}) y Débito Fiscal ($${ivaDebito.toFixed(2)}), registrando Impuesto por Pagar de $${impuestoPorPagar.toFixed(2)}.`;
+
+      const [p] = await connection.query(
+        `INSERT INTO partidas (numero_partida, fecha, concepto) VALUES (?, ?, ?)`,
+        [numPartida, fechaLiquidacion, concepto]
+      );
+
+      await connection.query(
+        `INSERT INTO detalle_asiento (partida_id, cuenta_id, parcial, debe, haber) VALUES 
+         (?, ?, 0.00, ?, 0.00),
+         (?, ?, 0.00, 0.00, ?),
+         (?, ?, 0.00, 0.00, ?)`,
+        [
+          p.insertId, idDebito, ivaDebito,
+          p.insertId, idCredito, ivaCredito,
+          p.insertId, idPagar, impuestoPorPagar
+        ]
+      );
+
+    } else if (ivaCredito > ivaDebito) {
+      const remanenteAFavor = Math.round((ivaCredito - ivaDebito) * 100) / 100;
+      concepto = `Liquidación de IVA del periodo: Cancelación de Crédito Fiscal ($${ivaCredito.toFixed(2)}) y Débito Fiscal ($${ivaDebito.toFixed(2)}), trasladando Remanente a Favor de $${remanenteAFavor.toFixed(2)} a la cuenta Remanente de Crédito Fiscal.`;
+
+      const [p] = await connection.query(
+        `INSERT INTO partidas (numero_partida, fecha, concepto) VALUES (?, ?, ?)`,
+        [numPartida, fechaLiquidacion, concepto]
+      );
+
+      await connection.query(
+        `INSERT INTO detalle_asiento (partida_id, cuenta_id, parcial, debe, haber) VALUES 
+         (?, ?, 0.00, ?, 0.00),
+         (?, ?, 0.00, ?, 0.00),
+         (?, ?, 0.00, 0.00, ?)`,
+        [
+          p.insertId, idDebito, ivaDebito,
+          p.insertId, idRemanente, remanenteAFavor,
+          p.insertId, idCredito, ivaCredito
+        ]
+      );
+
+    } else {
+      concepto = `Liquidación de IVA del periodo: Cancelación exacta de Crédito Fiscal ($${ivaCredito.toFixed(2)}) y Débito Fiscal ($${ivaDebito.toFixed(2)}).`;
+
+      const [p] = await connection.query(
+        `INSERT INTO partidas (numero_partida, fecha, concepto) VALUES (?, ?, ?)`,
+        [numPartida, fechaLiquidacion, concepto]
+      );
+
+      await connection.query(
+        `INSERT INTO detalle_asiento (partida_id, cuenta_id, parcial, debe, haber) VALUES 
+         (?, ?, 0.00, ?, 0.00),
+         (?, ?, 0.00, 0.00, ?)`,
+        [
+          p.insertId, idDebito, ivaDebito,
+          p.insertId, idCredito, ivaCredito
+        ]
+      );
+    }
+
+    await connection.commit();
+
+    res.json({
+      success: true,
+      message: `¡Liquidación de IVA registrada exitosamente en la Partida N° ${numPartida}!`,
+      numeroPartida: numPartida,
+      ivaCredito,
+      ivaDebito,
+      concepto
+    });
+
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error al liquidar IVA:', error);
+    res.status(500).json({ success: false, message: 'Error interno al procesar la liquidación de IVA.', error: error.message });
+  } finally {
+    connection.release();
+  }
+});
+
 // GET /api/partidas/:id - Obtener una partida específica con su detalle
 router.get('/:id', async (req, res) => {
   try {
