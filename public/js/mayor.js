@@ -103,12 +103,12 @@ function actualizarTotalesSaldosGlobales(cuentas) {
         }
     });
 
-    // Actualizar únicamente si existen los elementos específicos en el DOM
-    const elDeudor = document.getElementById('totalSaldoDeudor') || document.querySelector('.total-saldo-deudor');
-    const elAcreedor = document.getElementById('totalSaldoAcreedor') || document.querySelector('.total-saldo-acreedor');
+    // Actualizar los elementos específicos en el DOM (sumaTotalSaldoDeudor y sumaTotalSaldoAcreedor)
+    const elDeudor = document.getElementById('sumaTotalSaldoDeudor') || document.getElementById('totalSaldoDeudor') || document.querySelector('.total-saldo-deudor');
+    const elAcreedor = document.getElementById('sumaTotalSaldoAcreedor') || document.getElementById('totalSaldoAcreedor') || document.querySelector('.total-saldo-acreedor');
 
-    if (elDeudor) elDeudor.textContent = '$' + totalDeudorGlobal.toFixed(2);
-    if (elAcreedor) elAcreedor.textContent = '$' + totalAcreedorGlobal.toFixed(2);
+    if (elDeudor) elDeudor.textContent = '$' + totalDeudorGlobal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (elAcreedor) elAcreedor.textContent = '$' + totalAcreedorGlobal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // Renderizar Vista de Cuentas en T (Formato Tradicional Contable de 4 Columnas Exacto al Excel)

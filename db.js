@@ -141,7 +141,8 @@ console.log(`⚡ Conexión exitosa a la base de datos SQLite (${dbPath})`);
         ['110201', 'Clientes', 1, 'DEUDORA'],
         ['1103', 'Inventarios / Mercaderías', 1, 'DEUDORA'],
         ['1104', 'IVA - Crédito Fiscal', 1, 'DEUDORA'],
-        ['1105', 'Remanente de Crédito Fiscal', 1, 'DEUDORA'],
+        ['1105', 'Remanente de Crédito Fiscal (IVA a Favor)', 1, 'DEUDORA'],
+        ['110501', 'Remanente de Crédito Fiscal (IVA a Favor)', 1, 'DEUDORA'],
         ['1106', 'Anticipo a Cuenta de IVA (Percepción 1%)', 1, 'DEUDORA'],
         ['1107', 'Gastos Pagados por Anticipado', 1, 'DEUDORA'],
         ['110701', 'Papelería y Útiles', 1, 'DEUDORA'],
@@ -217,6 +218,10 @@ console.log(`⚡ Conexión exitosa a la base de datos SQLite (${dbPath})`);
           await wrapper.query(`DELETE FROM catalogo_cuentas WHERE id IN (${idsDup.join(',')})`);
         }
       }
+      // Asegurar actualización de nombre de cuenta 1105 a Remanente de Crédito Fiscal (IVA a Favor)
+      await wrapper.query(`UPDATE catalogo_cuentas SET nombre = 'Remanente de Crédito Fiscal (IVA a Favor)' WHERE codigo = '1105'`);
+      await wrapper.query(`INSERT OR IGNORE INTO catalogo_cuentas (codigo, nombre, tipo, naturaleza) VALUES ('1105', 'Remanente de Crédito Fiscal (IVA a Favor)', 1, 'DEUDORA')`);
+      await wrapper.query(`INSERT OR IGNORE INTO catalogo_cuentas (codigo, nombre, tipo, naturaleza) VALUES ('110501', 'Remanente de Crédito Fiscal (IVA a Favor)', 1, 'DEUDORA')`);
     } catch(e) {
       console.error('Nota en migración de cuentas:', e.message);
     }

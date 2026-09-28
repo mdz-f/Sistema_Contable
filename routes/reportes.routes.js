@@ -464,16 +464,11 @@ router.get('/balance-general', async (req, res) => {
     );
     const tieneAjustes = ajustesCount[0].total > 0;
 
-    // 1. Activos (Código 1 / Tipo 1)
-    const [activosRows] = await db.query(
-      `SELECT c.id, c.codigo, c.nombre, 
-              COALESCE(SUM(d.debe), 0) AS total_debe, 
-              COALESCE(SUM(d.haber), 0) AS total_haber
+    // 1. Activos (Código 1 / Tipo 1) - Consolidado por Cuentas Principales de 4 Dígitos
+    const [activosMain] = await db.query(
+      `SELECT c.id, c.codigo, c.nombre
        FROM catalogo_cuentas c
-       LEFT JOIN detalle_asiento d ON c.id = d.cuenta_id
-       WHERE c.tipo = 1 OR c.codigo LIKE '1%'
-       GROUP BY c.id, c.codigo, c.nombre
-       HAVING (total_debe > 0 OR total_haber > 0)
+       WHERE (c.tipo = 1 OR c.codigo LIKE '1%') AND LENGTH(c.codigo) = 4
        ORDER BY c.codigo ASC`
     );
 
@@ -486,62 +481,94 @@ router.get('/balance-general', async (req, res) => {
       if (kFinal.length > 0) invFinalKardex = parseFloat(kFinal[0].saldo) || 0;
     }
 
-    activosRows.forEach(c => {
-      let saldo = Math.round((parseFloat(c.total_debe) - parseFloat(c.total_haber)) * 100) / 100;
+    for (let c of activosMain) {
+      const [sumRow] = await db.query(
+        `SELECT 
+          COALESCE(SUM(d.debe), 0) AS total_debe,
+          COALESCE(SUM(d.haber), 0) AS total_haber
+         FROM detalle_asiento d
+         INNER JOIN catalogo_cuentas sub ON d.cuenta_id = sub.id
+         WHERE sub.codigo = ? OR sub.codigo LIKE (? || '%')`,
+        [c.codigo, c.codigo]
+      );
+
+      let tDebe = parseFloat(sumRow[0].total_debe || 0);
+      let tHaber = parseFloat(sumRow[0].total_haber || 0);
+      let saldo = Math.round((tDebe - tHaber) * 100) / 100;
+
       if (!tieneAjustes && c.codigo === '1103' && invFinalKardex > 0) {
         saldo = invFinalKardex;
       }
+
       if (Math.abs(saldo) >= 0.01) {
         totalActivos += saldo;
         activos.push({ id: c.id, codigo: c.codigo, nombre: c.nombre, saldo });
       }
-    });
+    }
 
-    // 2. Pasivos (Código 2 / Tipo 2)
-    const [pasivosRows] = await db.query(
-      `SELECT c.id, c.codigo, c.nombre, 
-              COALESCE(SUM(d.debe), 0) AS total_debe, 
-              COALESCE(SUM(d.haber), 0) AS total_haber
+    // 2. Pasivos (Código 2 / Tipo 2) - Consolidado por Cuentas Principales de 4 Dígitos
+    const [pasivosMain] = await db.query(
+      `SELECT c.id, c.codigo, c.nombre
        FROM catalogo_cuentas c
-       LEFT JOIN detalle_asiento d ON c.id = d.cuenta_id
-       WHERE c.tipo = 2 OR c.codigo LIKE '2%'
-       GROUP BY c.id, c.codigo, c.nombre
-       HAVING (total_debe > 0 OR total_haber > 0)
+       WHERE (c.tipo = 2 OR c.codigo LIKE '2%') AND LENGTH(c.codigo) = 4
        ORDER BY c.codigo ASC`
     );
 
     let totalPasivos = 0;
     const pasivos = [];
-    pasivosRows.forEach(c => {
-      const saldo = Math.round((parseFloat(c.total_haber) - parseFloat(c.total_debe)) * 100) / 100;
+
+    for (let c of pasivosMain) {
+      const [sumRow] = await db.query(
+        `SELECT 
+          COALESCE(SUM(d.debe), 0) AS total_debe,
+          COALESCE(SUM(d.haber), 0) AS total_haber
+         FROM detalle_asiento d
+         INNER JOIN catalogo_cuentas sub ON d.cuenta_id = sub.id
+         WHERE sub.codigo = ? OR sub.codigo LIKE (? || '%')`,
+        [c.codigo, c.codigo]
+      );
+
+      let tDebe = parseFloat(sumRow[0].total_debe || 0);
+      let tHaber = parseFloat(sumRow[0].total_haber || 0);
+      let saldo = Math.round((tHaber - tDebe) * 100) / 100;
+
       if (Math.abs(saldo) >= 0.01) {
         totalPasivos += saldo;
         pasivos.push({ id: c.id, codigo: c.codigo, nombre: c.nombre, saldo });
       }
-    });
+    }
 
-    // 3. Capital Contable (Código 3 / Tipo 3)
-    const [capitalRows] = await db.query(
-      `SELECT c.id, c.codigo, c.nombre, 
-              COALESCE(SUM(d.debe), 0) AS total_debe, 
-              COALESCE(SUM(d.haber), 0) AS total_haber
+    // 3. Capital Contable (Código 3 / Tipo 3) - Consolidado por Cuentas Principales de 4 Dígitos
+    const [capitalMain] = await db.query(
+      `SELECT c.id, c.codigo, c.nombre
        FROM catalogo_cuentas c
-       LEFT JOIN detalle_asiento d ON c.id = d.cuenta_id
-       WHERE c.tipo = 3 OR c.codigo LIKE '3%'
-       GROUP BY c.id, c.codigo, c.nombre
-       HAVING (total_debe > 0 OR total_haber > 0)
+       WHERE (c.tipo = 3 OR c.codigo LIKE '3%') AND LENGTH(c.codigo) = 4
        ORDER BY c.codigo ASC`
     );
 
     let totalCapital = 0;
     const capital = [];
-    capitalRows.forEach(c => {
-      const saldo = Math.round((parseFloat(c.total_haber) - parseFloat(c.total_debe)) * 100) / 100;
+
+    for (let c of capitalMain) {
+      const [sumRow] = await db.query(
+        `SELECT 
+          COALESCE(SUM(d.debe), 0) AS total_debe,
+          COALESCE(SUM(d.haber), 0) AS total_haber
+         FROM detalle_asiento d
+         INNER JOIN catalogo_cuentas sub ON d.cuenta_id = sub.id
+         WHERE sub.codigo = ? OR sub.codigo LIKE (? || '%')`,
+        [c.codigo, c.codigo]
+      );
+
+      let tDebe = parseFloat(sumRow[0].total_debe || 0);
+      let tHaber = parseFloat(sumRow[0].total_haber || 0);
+      let saldo = Math.round((tHaber - tDebe) * 100) / 100;
+
       if (Math.abs(saldo) >= 0.01) {
         totalCapital += saldo;
         capital.push({ id: c.id, codigo: c.codigo, nombre: c.nombre, saldo });
       }
-    });
+    }
 
     // 4. Utilidad o Pérdida del Ejercicio (calculada analíticamente para coincidencia exacta al centavo)
     const [movs] = await db.query(
