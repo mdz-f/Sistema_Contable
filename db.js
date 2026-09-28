@@ -167,8 +167,6 @@ console.log(`⚡ Conexión exitosa a la base de datos SQLite (${dbPath})`);
         ['3102', 'Reserva Legal', 3, 'ACREEDORA'],
         ['3103', 'Utilidades Retenidas / Acumuladas', 3, 'ACREEDORA'],
         ['4101', 'Costo de Ventas', 4, 'DEUDORA'],
-        ['410101', 'Compras', 4, 'DEUDORA'],
-        ['410102', 'Devolución sobre Compra', 4, 'ACREEDORA'],
         ['4102', 'Compras', 4, 'DEUDORA'],
         ['4103', 'Gastos sobre Compras', 4, 'DEUDORA'],
         ['4104', 'Devoluciones y Rebajas sobre Compras', 4, 'ACREEDORA'],
@@ -180,11 +178,9 @@ console.log(`⚡ Conexión exitosa a la base de datos SQLite (${dbPath})`);
         ['420301', 'Comisiones Bancarias', 4, 'DEUDORA'],
         ['4204', 'Sueldos y Salarios', 4, 'DEUDORA'],
         ['5101', 'Ventas', 5, 'ACREEDORA'],
-        ['510101', 'Ventas', 5, 'ACREEDORA'],
         ['510102', 'Devolución sobre Venta', 5, 'DEUDORA'],
         ['5102', 'Ingresos Financieros', 5, 'ACREEDORA'],
         ['5103', 'Devoluciones y Rebajas sobre Ventas', 5, 'DEUDORA'],
-        ['5104', 'Ingresos por Ventas', 5, 'ACREEDORA'],
         ['5201', 'Otros Ingresos Operativos', 5, 'ACREEDORA']
       ];
 
@@ -194,7 +190,35 @@ console.log(`⚡ Conexión exitosa a la base de datos SQLite (${dbPath})`);
           c
         );
       }
-      console.log('✅ Catálogo de 52 cuentas cargado en SQLite.');
+      console.log('✅ Catálogo de cuentas principales cargado en SQLite.');
+    }
+
+    // Limpieza de cuentas duplicadas en bases de datos SQLite existentes
+    try {
+      const [cCompras] = await wrapper.query(`SELECT id FROM catalogo_cuentas WHERE codigo = '4102'`);
+      const [cVentas] = await wrapper.query(`SELECT id FROM catalogo_cuentas WHERE codigo = '5101'`);
+
+      if (cCompras.length > 0) {
+        const id4102 = cCompras[0].id;
+        const [dupCompras] = await wrapper.query(`SELECT id FROM catalogo_cuentas WHERE codigo = '410101'`);
+        if (dupCompras.length > 0) {
+          const idsDup = dupCompras.map(x => x.id);
+          await wrapper.query(`UPDATE detalle_asiento SET cuenta_id = ? WHERE cuenta_id IN (${idsDup.join(',')})`, [id4102]);
+          await wrapper.query(`DELETE FROM catalogo_cuentas WHERE id IN (${idsDup.join(',')})`);
+        }
+      }
+
+      if (cVentas.length > 0) {
+        const id5101 = cVentas[0].id;
+        const [dupVentas] = await wrapper.query(`SELECT id FROM catalogo_cuentas WHERE codigo IN ('510101', '5104')`);
+        if (dupVentas.length > 0) {
+          const idsDup = dupVentas.map(x => x.id);
+          await wrapper.query(`UPDATE detalle_asiento SET cuenta_id = ? WHERE cuenta_id IN (${idsDup.join(',')})`, [id5101]);
+          await wrapper.query(`DELETE FROM catalogo_cuentas WHERE id IN (${idsDup.join(',')})`);
+        }
+      }
+    } catch(e) {
+      console.error('Nota en migración de cuentas:', e.message);
     }
   } catch (err) {
     console.error('Error al poblar catálogo SQLite:', err.message);

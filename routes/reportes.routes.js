@@ -2,48 +2,50 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// GET /api/reportes/mayor - Consolidación del Libro Mayor en Tiempo Real
+// GET /api/reportes/mayor - Consolidación del Libro Mayor en Tiempo Real (Solo Cuentas Principales de 4 dígitos)
 router.get('/mayor', async (req, res) => {
   try {
+    // 1. Obtener únicamente las cuentas principales de 4 dígitos de código
     const [cuentas] = await db.query(
-      `SELECT 
-        c.id, 
-        c.codigo, 
-        c.nombre, 
-        c.tipo, 
-        c.naturaleza,
-        COALESCE(SUM(d.debe), 0) AS total_debe,
-        COALESCE(SUM(d.haber), 0) AS total_haber
+      `SELECT c.id, c.codigo, c.nombre, c.tipo, c.naturaleza
        FROM catalogo_cuentas c
-       LEFT JOIN detalle_asiento d ON c.id = d.cuenta_id
-       GROUP BY c.id, c.codigo, c.nombre, c.tipo, c.naturaleza
+       WHERE LENGTH(c.codigo) = 4
        ORDER BY c.codigo ASC`
     );
 
     const libroMayor = [];
 
     for (let c of cuentas) {
-      const debe = parseFloat(c.total_debe);
-      const haber = parseFloat(c.total_haber);
+      // Consolidar débitos y créditos acumulando la cuenta principal y sus subcuentas
+      const [sumRow] = await db.query(
+        `SELECT 
+          COALESCE(SUM(d.debe), 0) AS total_debe,
+          COALESCE(SUM(d.haber), 0) AS total_haber
+         FROM detalle_asiento d
+         INNER JOIN catalogo_cuentas sub ON d.cuenta_id = sub.id
+         WHERE sub.codigo = ? OR sub.codigo LIKE (? || '%')`,
+        [c.codigo, c.codigo]
+      );
+
+      const debe = parseFloat(sumRow[0].total_debe || 0);
+      const haber = parseFloat(sumRow[0].total_haber || 0);
       let saldo = 0;
 
-      // Determinación del saldo según su naturaleza:
-      // Cuentas deudoras (Activos, Costos, Gastos): Saldo = Debe - Haber
-      // Cuentas acreedoras (Pasivos, Capital, Ingresos): Saldo = Haber - Debe
       if (c.naturaleza === 'DEUDORA') {
         saldo = debe - haber;
       } else {
         saldo = haber - debe;
       }
 
-      // Obtener los movimientos individuales para la vista detallada en T
+      // Obtener movimientos individuales pertenecientes a la cuenta principal o sus subcuentas
       const [movimientos] = await db.query(
         `SELECT p.numero_partida, p.fecha, p.concepto, d.debe, d.haber
          FROM detalle_asiento d
          INNER JOIN partidas p ON d.partida_id = p.id
-         WHERE d.cuenta_id = ?
+         INNER JOIN catalogo_cuentas sub ON d.cuenta_id = sub.id
+         WHERE sub.codigo = ? OR sub.codigo LIKE (? || '%')
          ORDER BY p.fecha ASC, p.numero_partida ASC`,
-        [c.id]
+        [c.codigo, c.codigo]
       );
 
       libroMayor.push({
@@ -79,12 +81,13 @@ router.get('/dashboard', async (req, res) => {
 
     const [mesesRows] = await db.query(
       `SELECT 
-        MONTH(p.fecha) AS mes_num,
+        CAST(SUBSTR(p.fecha, 6, 2) AS INTEGER) AS mes_num,
         SUM(d.debe) AS total_debe,
         SUM(d.haber) AS total_haber
        FROM detalle_asiento d
        INNER JOIN partidas p ON d.partida_id = p.id
-       GROUP BY MONTH(p.fecha)
+       WHERE p.fecha IS NOT NULL AND LENGTH(p.fecha) >= 7
+       GROUP BY mes_num
        ORDER BY mes_num ASC`
     );
 
@@ -93,7 +96,7 @@ router.get('/dashboard', async (req, res) => {
     const partidasPorMes = Array(12).fill(0);
 
     mesesRows.forEach(r => {
-      const idx = r.mes_num - 1;
+      const idx = parseInt(r.mes_num, 10) - 1;
       if (idx >= 0 && idx < 12) {
         debePorMes[idx] = Math.round(parseFloat(r.total_debe || 0) * 100) / 100;
         haberPorMes[idx] = Math.round(parseFloat(r.total_haber || 0) * 100) / 100;
@@ -101,12 +104,13 @@ router.get('/dashboard', async (req, res) => {
     });
 
     const [partidasMesRows] = await db.query(
-      `SELECT MONTH(fecha) AS mes_num, COUNT(*) AS total
+      `SELECT CAST(SUBSTR(fecha, 6, 2) AS INTEGER) AS mes_num, COUNT(*) AS total
        FROM partidas
-       GROUP BY MONTH(fecha)`
+       WHERE fecha IS NOT NULL AND LENGTH(fecha) >= 7
+       GROUP BY mes_num`
     );
     partidasMesRows.forEach(r => {
-      const idx = r.mes_num - 1;
+      const idx = parseInt(r.mes_num, 10) - 1;
       if (idx >= 0 && idx < 12) {
         partidasPorMes[idx] = parseInt(r.total || 0, 10);
       }

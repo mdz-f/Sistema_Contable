@@ -57,8 +57,6 @@ INSERT INTO catalogo_cuentas (codigo, nombre, tipo, naturaleza) VALUES
 
 -- 4. COSTOS Y GASTOS
 ('4101', 'Costo de Ventas', 4, 'DEUDORA'),
-('410101', 'Compras', 4, 'DEUDORA'),
-('410102', 'Devolución sobre Compra', 4, 'ACREEDORA'),
 ('4102', 'Compras', 4, 'DEUDORA'),
 ('4103', 'Gastos sobre Compras', 4, 'DEUDORA'),
 ('4104', 'Devoluciones y Rebajas sobre Compras', 4, 'ACREEDORA'),
@@ -72,9 +70,7 @@ INSERT INTO catalogo_cuentas (codigo, nombre, tipo, naturaleza) VALUES
 
 -- 5. INGRESOS
 ('5101', 'Ventas', 5, 'ACREEDORA'),
-('510101', 'Ventas', 5, 'ACREEDORA'),
 ('510102', 'Devolución sobre Venta', 5, 'DEUDORA'),
 ('5102', 'Ingresos Financieros', 5, 'ACREEDORA'),
 ('5103', 'Devoluciones y Rebajas sobre Ventas', 5, 'DEUDORA'),
-('5104', 'Ingresos por Ventas', 5, 'ACREEDORA'),
 ('5201', 'Otros Ingresos Operativos', 5, 'ACREEDORA');

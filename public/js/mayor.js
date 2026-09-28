@@ -103,24 +103,10 @@ function actualizarTotalesSaldosGlobales(cuentas) {
         }
     });
 
-    // Buscar los elementos en el DOM encargados de mostrar estos totales (ajusta los IDs si en tu HTML son distintos)
+    // Actualizar únicamente si existen los elementos específicos en el DOM
     const elDeudor = document.getElementById('totalSaldoDeudor') || document.querySelector('.total-saldo-deudor');
     const elAcreedor = document.getElementById('totalSaldoAcreedor') || document.querySelector('.total-saldo-acreedor');
 
-    // Si usas clases o estructuras específicas en el HTML de los totales, los actualizamos de forma segura por contenido de texto o selectores comunes
-    // O bien asignamos directamente si existen los elementos de tarjeta de totales:
-    document.querySelectorAll('*').forEach(el => {
-        if (el.textContent.trim() === 'Total Saldo Deudor' || el.previousElementSibling?.textContent?.includes('Total Saldo Deudor')) {
-            const valContainer = el.parentElement.querySelector('span, div.fs-5, div.fw-bold') || el.nextElementSibling;
-            if (valContainer) valContainer.textContent = '$' + totalDeudorGlobal.toFixed(2);
-        }
-        if (el.textContent.trim() === 'Total Saldo Acreedor' || el.previousElementSibling?.textContent?.includes('Total Saldo Acreedor')) {
-            const valContainer = el.parentElement.querySelector('span, div.fs-5, div.fw-bold') || el.nextElementSibling;
-            if (valContainer) valContainer.textContent = '$' + totalAcreedorGlobal.toFixed(2);
-        }
-    });
-
-    // Por si tienes IDs directos estándar recomendados:
     if (elDeudor) elDeudor.textContent = '$' + totalDeudorGlobal.toFixed(2);
     if (elAcreedor) elAcreedor.textContent = '$' + totalAcreedorGlobal.toFixed(2);
 }
